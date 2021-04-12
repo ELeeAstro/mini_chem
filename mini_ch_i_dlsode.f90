@@ -1,14 +1,16 @@
-module mini_ch_i_seulex
+module mini_ch_i_dlsode
   use mini_ch_precision
   use mini_ch_class
   use mini_ch_chem
   implicit none
 
-  public ::  mini_ch_seulex, RHS_update, jac_dummy, mas_dummy, solout, jac_HO, jac_CHO
+  logical, parameter :: use_stiff = .True.
+
+  public ::  mini_ch_dlsode, RHS_update, jac_dummy, jac_HO, jac_CHO
 
 contains
 
-  subroutine mini_ch_seulex(T, P, t_end, VMR)
+  subroutine mini_ch_dlsode(T, P, t_end, VMR)
     implicit none
 
     real(dp), intent(in) :: T, P, t_end
@@ -20,13 +22,14 @@ contains
     ! Time controls
     real(dp) :: t_begin, t_now, dt_init
 
-    ! seulex variables
+    ! DVODE variables
     real(dp), dimension(n_sp) :: y
-    real(dp), allocatable, dimension(:) :: rwork
+    real(dp), allocatable, dimension(:) :: rwork, rtol, atol
     integer, allocatable, dimension(:) :: iwork
-    real(dp) :: rtol, atol
+    integer :: itol, itask, istate, iopt, mf
+    integer :: rworkdim, iworkdim
     real(dp) :: rpar
-    integer :: itol, ijac, mljac, mujac, imas, mlmas, mumas, iout, lrwork, liwork, ipar, idid
+    integer :: ipar
 
     !! Find the number density of the atmosphere
     P_cgs = P * 10.0_dp   ! Convert pascal to dyne cm-2
@@ -41,85 +44,94 @@ contains
     call reaction_rates(T, P_cgs)
 
     ! -----------------------------------------
-    ! ***  parameters for the SEULEX-solver  ***
+    ! ***  parameters for the DVODE solver  ***
     ! -----------------------------------------
 
-    rtol = 1.0e-4_dp
-    atol = 1.0e-30_dp
-    itol = 0
-    ijac = 1
-    mljac = n_sp
-    mujac = 0
-    imas = 0
-    mlmas = n_sp
-    mumas = 0
-    iout = 0
-    idid = 0
+    itask = 1
+    istate = 1
+    iopt = 1
 
-    ! Real work array
-    lrwork = n_sp*(n_sp*3 + 12 + 8) + 4*12 + 20
-    allocate(rwork(lrwork))
-    rwork(:) = 0.0_dp
+    ! Method flag
+    if (use_stiff .eqv. .True.) then
+      ! Problem is stiff (usual)
+      ! mf = 21 - full jacobian matrix with jacobian save
+      mf = 21
+      rworkdim = 22 +  9*n_sp + 2*n_sp**2
+      iworkdim = 30 + n_sp
+      allocate(rtol(n_sp), atol(n_sp), rwork(rworkdim), iwork(iworkdim))
 
-    rwork(1) = 1.0e-16_dp ! Rounding unit - default 1e-16
-    rwork(2) = t_end!/1000.0_dp ! Max step size
-    rwork(3) = min(1.0e-4_dp,rtol)  ! Jacobian recompuation rate
-    rwork(4) = 0.1_dp ! Parameter for step size selection - default 0.1
-    rwork(5) = 4.0_dp  ! Parameter for step size selection - default 4.0
-    rwork(6) = 0.7_dp  ! Parameter for order selection - default 0.7
-    rwork(7) = 0.9_dp  ! Parameter for order selection - default 0.9
-    rwork(8) = 0.80_dp ! Safety factor - default 0.8
-    rwork(9) = 0.93_dp ! Safety factor - default 0.93
-    rwork(10) = 1.0_dp ! FCN call estimated work
-    rwork(11) = 1.0_dp ! JAC call estimated work - default 5
-    rwork(12) = 1.0_dp ! DEC call estimated work
-    rwork(13) = 1.0_dp ! SOL call estimated work
+      itol = 4
+      rtol(:) = 1.0e-4_dp           ! Relative tolerances for each scalar
+      atol(:) = 1.0e-30_dp          ! Absolute tolerance for each scalar (floor value)
 
-    ! Integer work array
-    liwork = 2*n_sp + 12 + 20
-    allocate(iwork(liwork))
-    iwork(:) = 0
+      rwork(1) = t_end              ! Critical T value (don't integrate past time here)
 
-    iwork(1) = 0 ! Hessenberg form?
-    iwork(2) = 0 ! Default step numbers - 0 = 100000
-    iwork(3) = 0 ! Max columns in extrapolation table - default 12
-    iwork(4) = 0 ! Switch for step size sequence - defualt 0 = 2
-    iwork(5) = 0 ! Lambda parameter for dense output
-    iwork(6) = 0 ! Number of components for which dense output is required
+      rwork(5:10) = 0.0_dp
+      iwork(5:10) = 0
+
+      rwork(5) = 1.0e-99_dp        ! Initial starting timestep (start low, will adapt in DVODE)
+      rwork(6) = t_end             ! Maximum timestep (for heavy evaporation ~0.1 is required)
+      iwork(6) = 50000             ! Max number of internal steps
+
+    else
+      ! Problem is not too stiff (not typical)
+      ! mf = 11 - full jacobian matrix with jacobian save
+      mf = 11
+      rworkdim = 22 + 16*n_sp + 2*n_sp**2
+      iworkdim = 30 + n_sp
+      allocate(rtol(n_sp), atol(n_sp), rwork(rworkdim), iwork(iworkdim))
+      itol = 4
+      rtol(:) = 1.0e-4_dp
+      atol(:) = 1.0e-30_dp
+
+      rwork(1) = t_end
+
+      rwork(5:10) = 0.0_dp
+      iwork(5:10) = 0
+
+      rwork(5) = 1.0e-99_dp
+      rwork(6) = t_end
+      iwork(6) = 50000
+    end if
+
+    t_begin = 0.0_dp
+    t_now = t_begin
 
     rpar = 0.0_dp
     ipar = 0
 
-    t_begin = 0.0_dp
-    t_now = t_begin
-    dt_init = 1.0e-99_dp
+    ! Set the printing flag
+    ! 0 = no printing, 1 = printing
+    call xsetf(1)
 
-    ncall = 1
+    ncall = 0
 
-    do while((t_now < t_end))
+    do while (t_now < t_end)
 
       ! Solution vector to seulex - y vector is number density of all species
       y(:) = g_sp(:)%nd
 
-      call SEULEX(n_sp,RHS_update,0,t_now,y,t_end,dt_init, &
-        &                  rtol,atol,itol, &
-        &                  jac_HO,ijac,mljac,mujac, &
-        &                  mas_dummy,imas,mlmas,mumas, &
-        &                  solout,iout, &
-        &                  rwork,lrwork,iwork,liwork,rpar,ipar,idid)
+      call DLSODE (RHS_update, n_sp, y, t_now, t_end, itol, rtol, atol, itask, &
+        & istate, iopt, rwork, rworkdim, iwork, iworkdim, jac_HO, mf)
 
       g_sp(:)%nd = y(:)
 
       ncall = ncall + 1
+
+      if (istate == -1) then
+        istate = 2
+      else if (istate < -1) then
+        exit
+      end if
 
     end do
 
     ! End result is update to VMR for all species
     VMR(:) = g_sp(:)%nd/sum(g_sp(:)%nd)
 
-    deallocate(rwork, iwork)
+    deallocate(rtol, atol, rwork, iwork)
 
-  end subroutine mini_ch_seulex
+  end subroutine mini_ch_dlsode
 
   subroutine RHS_update(NEQ, time, y, f, rpar, ipar)
     implicit none
@@ -180,17 +192,19 @@ contains
 
   end subroutine RHS_update
 
-  subroutine jac_dummy(N,X,Y,DFY,LDFY,RPAR,IPAR)
-    integer :: N,LDFY,IPAR
-    double precision :: X,Y(N),DFY(LDFY,N),RPAR
+  subroutine jac_dummy (NEQ, X, Y, ML, MU, PD, NROWPD)
+    integer, intent(in) :: NEQ, ML, MU, NROWPD
+    real(dp), intent(in) :: X
+    real(dp), dimension(NEQ), intent(in) :: Y
+    real(dp), dimension(NROWPD, NEQ), intent(inout) :: PD
   end subroutine jac_dummy
 
-  subroutine jac_CHO(N,X,Y,DFY,LDFY,RPAR,IPAR)
+  subroutine jac_CHO(N, X, Y, ML, MU, DFY, NROWPD)
     implicit none
-    integer, intent(in) :: N, LDFY, ipar
-    real(dp), intent(in) :: X, RPAR
+    integer, intent(in) :: N, ML, MU, NROWPD
+    real(dp), intent(in) :: X
     real(dp), dimension(N), intent(in) :: Y
-    real(dp), dimension(LDFY, N),intent(out) :: DFY
+    real(dp), dimension(NROWPD, N), intent(out) :: DFY
 
     nd_atm = sum(y(:))
 
@@ -212,8 +226,8 @@ contains
     dfy(1, 10) = 0.0_dp
     dfy(1, 11) = 0.0_dp
     dfy(2, 1) = -re(1)%f*y(2) + re(3)%r*y(4)
-    dfy(2, 2) = -nd_atm*re(5)%r - 9.0_dp*re(6)%r*y(2)**2*y(5) - 9.0_dp*re(7)%r*y(2)**2*y(10) - &
-      & re(8)%r*y(11) - re(9)%f*y(5)*y(8) - re(1)%f*y(1) - re(3)%f*y(7)
+    dfy(2, 2) = -nd_atm*re(5)%r - 9.0_dp*re(6)%r*y(2)**2*y(5) - 9.0_dp*re(7)%r*y(2)**2*y(10) &
+      & - re(8)%r*y(11) - re(9)%f*y(5)*y(8) - re(1)%f*y(1) - re(3)%f*y(7)
     dfy(2, 3) = 3.0_dp*re(6)%f*y(9) + re(1)%r*y(4)
     dfy(2, 4) = 2.0_dp*nd_atm*re(5)%f*y(4) + re(1)%r*y(3) + re(3)%r*y(1)
     dfy(2, 5) = -3.0_dp*re(6)%r*y(2)**3 - re(9)%f*y(2)*y(8)
@@ -237,7 +251,8 @@ contains
     dfy(4, 1) = re(1)%f*y(2) + re(2)%f*y(5) - re(3)%r*y(4) + re(4)%f*y(8)
     dfy(4, 2) = 2.0_dp*nd_atm*re(5)%r + re(1)%f*y(1) + re(3)%f*y(7)
     dfy(4, 3) = -re(1)%r*y(4)
-    dfy(4, 4) = -4.0_dp*nd_atm*re(5)%f*y(4) - re(1)%r*y(3) - re(2)%r*y(6) - re(3)%r*y(1) - re(4)%r*y(5)
+    dfy(4, 4) = -4.0_dp*nd_atm*re(5)%f*y(4) - re(1)%r*y(3) - &
+     & re(2)%r*y(6) - re(3)%r*y(1) - re(4)%r*y(5)
     dfy(4, 5) = re(2)%f*y(1) - re(4)%r*y(4)
     dfy(4, 6) = -re(2)%r*y(4)
     dfy(4, 7) = re(3)%f*y(2)
@@ -290,7 +305,8 @@ contains
     dfy(8, 10) = re(9)%r*y(7)
     dfy(8, 11) = 0.0_dp
     dfy(9, 1) = 0.0_dp
-    dfy(9, 2) = 3.0_dp*re(6)%r*y(2)**2*y(5) + 6.0_dp*re(7)%r*y(2)**2*y(10) + 2.0_dp*re(8)%r*y(11)
+    dfy(9, 2) = 3.0_dp*re(6)%r*y(2)**2*y(5) + 6.0_dp*re(7)%r*y(2)**2*y(10) &
+     & + 2.0_dp*re(8)%r*y(11)
     dfy(9, 3) = -re(6)%f*y(9)
     dfy(9, 4) = 0.0_dp
     dfy(9, 5) = re(6)%r*y(2)**3
@@ -325,12 +341,12 @@ contains
 
   end subroutine jac_CHO
 
-  subroutine jac_HO(N,X,Y,DFY,LDFY,RPAR,IPAR)
+  subroutine jac_HO(N, X, Y, ML, MU, DFY, NROWPD)
     implicit none
-    integer, intent(in) :: N, LDFY, ipar
-    real(dp), intent(in) :: X, RPAR
+    integer, intent(in) :: N, ML, MU, NROWPD
+    real(dp), intent(in) :: X
     real(dp), dimension(N), intent(in) :: Y
-    real(dp), dimension(LDFY, N),intent(out) :: DFY
+    real(dp), dimension(NROWPD, N), intent(out) :: DFY
 
     nd_atm = sum(y(:))
 
@@ -368,14 +384,4 @@ contains
 
   end subroutine jac_HO
 
-  subroutine mas_dummy(N,AM,LMAS,RPAR,IPAR)
-    integer :: N, LMAS, IPAR
-    double precision :: AM(LMAS,N), RPAR
-  end subroutine mas_dummy
-
-  subroutine solout(NR,XOLD,X,Y,CONT,LRC,N,RPAR,IPAR,IRTRN)
-    integer :: NR, LRC, N, IPAR, IRTRN
-    double precision :: XOLD, X, Y(N), CONT(LRC), RPAR
-  end subroutine solout
-
-end module mini_ch_i_seulex
+end module mini_ch_i_dlsode

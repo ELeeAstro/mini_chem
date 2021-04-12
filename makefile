@@ -5,7 +5,7 @@ F90 = gfortran
 F90LINKER =  gfortran
 
 #Debugging and development flags
-#FFLAGS	= -O0 -g -pipe -Wall -Wextra -fbacktrace -fcheck=all -ffpe-trap=invalid,zero,overflow
+#FFLAGS	= -Og -g -pipe -Wall -Wextra -fbacktrace -fcheck=all -ffpe-trap=invalid,zero,overflow
 #FFLAGS	= -Og -pipe -Wall -Wextra -g -fbacktrace
 
 #Serial flags
@@ -38,6 +38,8 @@ dc_lapack.o \
 seulex.o \
 rodas.o \
 radau5.o \
+dvode.o \
+dlsode.o \
 mini_ch_precision.o \
 mini_ch_class.o \
 mini_ch_read_reac_list.o \
@@ -45,6 +47,8 @@ mini_ch_chem.o \
 mini_ch_i_seulex.o \
 mini_ch_i_rodas.o \
 mini_ch_i_radau5.o \
+mini_ch_i_dvode.o \
+mini_ch_i_dlsode.o \
 mini_ch_main.o \
 
 

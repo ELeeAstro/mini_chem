@@ -7,13 +7,15 @@ module mini_ch_chem
 
 contains
 
-  subroutine reaction_rates(T)
+  subroutine reaction_rates(T, P)
     implicit none
 
-    real(dp), intent(in) :: T
+    real(dp), intent(in) :: T, P
 
-    integer :: i
+    integer :: i, iT, iT1, iP, iP1
     real(dp) :: k0, kinf
+    real(dp) :: Tl, Tu, Pl, Pu, Tw, Pw
+    real(dp) :: k11, k12, k21, k22, kf
 
     !! Calculate the forward and backward, and then net reaction rates for each reaction
     do i = 1, n_reac
@@ -30,6 +32,53 @@ contains
         re(i)%f = (k0 * nd_atm) / (1.0_dp + (k0 * nd_atm/kinf))
 
         !print*, i, k0, kinf
+      else if (re(i)%re_t == 4) then
+        ! Interpolate from table to find net reaction forward rate
+
+        ! Find temperature index
+        Tw = T
+        call locate(re(i)%T(:), re(i)%nT , Tw, iT)
+        if (iT == 0) then
+          iT = 1
+          Tw = minval(re(i)%T(:))
+        else if (iT == re(i)%nT) then
+          iT = re(i)%nT-1
+          Tw = maxval(re(i)%T(:))
+        end if
+        iT1 = iT + 1
+
+        Tl = re(i)%T(iT)
+        Tu = re(i)%T(iT1)
+
+        ! Find pressure index
+        Pw = P
+        call locate(re(i)%P(:), re(i)%nP , Pw, iP)
+        if (iP == 0) then
+          iP = 1
+          Pw = minval(re(i)%P(:))
+        else if (iP == re(i)%nP) then
+          iP = re(i)%nP-1
+          Pw = maxval(re(i)%P(:))
+        end if
+        iP1 = iP + 1
+
+        Pl = re(i)%P(iP)
+        Pu = re(i)%P(iP1)
+
+        ! Bi-linearly interpolate from table to find kf
+        k11 = re(i)%kf(iT,iP)
+        k12 = re(i)%kf(iT,iP1)
+        k21 = re(i)%kf(iT1,iP)
+        k22 = re(i)%kf(iT1,iP1)
+
+       call bilinear_interp(Tw, Pw, Tl, Tu, Pl, Pu, k11, k21, k12, k22, kf)
+
+       ! print*, i
+       ! print*, Tl, Tu
+       ! print*, Pl, Pu
+       ! print*, k11, k12, k21, k22, kf
+
+       re(i)%f = kf
 
       end if
 
@@ -43,10 +92,10 @@ contains
 
   end subroutine reaction_rates
 
-  subroutine reverse_reactions(T)
+  subroutine reverse_reactions(T, P)
     implicit none
 
-    real(dp), intent(in) :: T
+    real(dp), intent(in) :: T, P
 
     integer :: i, j
     real(dp) :: Tn2, Tn1, lnT, T2, T3, T4

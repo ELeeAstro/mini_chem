@@ -1,0 +1,13 @@
+# Net-reaction H-O network for GCMs
+# in the form of k = A T^B exp(-C/T)
+# Two-body Reactions
+# id	Reactions                           	A            B          C    		Ref 			  Temp  
+1    [ OH + H2 -> H2O + H                 ]  3.57E-16     1.520    1740.0      1992OLD/LOG8426-8430   250-2580
+3    [ O + H2 -> OH + H                   ]  8.52E-20     2.670     3160.0                            300-2500
+
+# 3-body and Disscoiation Reactions
+# id	# Reactions                         	A_0     	B_0     	C_0     	A_inf   	B_inf   	C_inf		Ref 		  	Temp
+
+5    [ H + H + M -> H2 + M                ]   2.70E-31    -0.600       0.0      3.31E-06    -1.000       0.0                             100-5000
+ 
+# reverse stops

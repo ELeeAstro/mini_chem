@@ -8,12 +8,10 @@ contains
   subroutine read_react_list()
     implicit none
 
-    integer :: i, u, j, k, is, ie
-    integer, parameter :: n_dum = 250
-    character(len=20), dimension(n_dum) :: c_dum
+    integer :: i, u, j, k, u2
 
     !! Read in the reaction list
-    open(newunit=u,file='mini_chem_data.txt',status='old',action='read',form='formatted')
+    open(newunit=u,file='mini_chem_data_HO.txt',status='old',action='read',form='formatted')
 
     do i = 1, 7
       read(u,*)
@@ -31,6 +29,8 @@ contains
         read(u,*) re(i)%n_re, re(i)%n_pr, re(i)%A, re(i)%B, re(i)%C
       else if (re(i)%re_t == 3) then
         read(u,*) re(i)%n_re, re(i)%n_pr, re(i)%A0, re(i)%B0, re(i)%C0, re(i)%Ainf, re(i)%Binf, re(i)%Cinf
+      else if (re(i)%re_t == 4) then
+        read(u,*) re(i)%n_re, re(i)%n_pr, re(i)%fname
       end if
 
       allocate(re(i)%stoi_re(re(i)%n_re), re(i)%stoi_pr(re(i)%n_pr))
@@ -39,11 +39,38 @@ contains
       allocate(re(i)%c_re(re(i)%n_re),re(i)%c_pr(re(i)%n_pr))
       read(u,*) (re(i)%c_re(j),j=1,re(i)%n_re), (re(i)%c_pr(k),k=1,re(i)%n_pr)
 
+      ! Read reaction rate table if from table
+      if (re(i)%re_t == 4) then
+        print*, 'Reading: ', trim(re(i)%fname)
+        open(newunit=u2,file=trim(re(i)%fname),status='old',action='read',form='formatted')
+        read(u2,*)
+        read(u2,*) re(i)%nT, re(i)%nP, re(i)%nkf
+        allocate(re(i)%T(re(i)%nT), re(i)%P(re(i)%nP), re(i)%kf(re(i)%nT,re(i)%nP))
+        read(u2,*)
+        read(u2,*) (re(i)%T(j), j = 1, re(i)%nT)
+        read(u2,*)
+        read(u2,*) (re(i)%P(k), k = 1, re(i)%nP)
+        ! Convert P from bar to dyne
+        re(i)%P(:) = re(i)%P(:) * 1.0e6_dp
+        read(u2,*)
+        do j = 1,  re(i)%nT
+          do k = 1, re(i)%nP
+            read(u2,*) re(i)%kf(j,k)
+          end do
+        end do
+        close(u2)
+      end if
+
+      ! print*, (re(i)%T(j), j = 1, re(i)%nT)
+      ! print*, (re(i)%P(k), k = 1, re(i)%nP)
+
       ! print*, re(i)%id, re(i)%re_t, re(i)%Tmin, re(i)%Tmax
       ! if (re(i)%re_t == 2) then
-      !   print*,  re(i)%n_re, re(i)%n_pr, re(i)%A, re(i)%B, re(i)%C
+      !   print*, re(i)%n_re, re(i)%n_pr, re(i)%A, re(i)%B, re(i)%C
       ! else if (re(i)%re_t == 3) then
       !   print*, re(i)%n_re, re(i)%n_pr, re(i)%A0, re(i)%B0, re(i)%C0, re(i)%Ainf, re(i)%Binf, re(i)%Cinf
+      ! else if (re(i)%re_t == 4) then
+      !   print*, re(i)%n_re, re(i)%n_pr, re(i)%fname
       ! end if
       ! print*, (re(i)%stoi_re(j),j=1,re(i)%n_re), (re(i)%stoi_pr(k),k=1,re(i)%n_pr)
       ! print*, (re(i)%c_re(j),j=1,re(i)%n_re), ' -> ', (re(i)%c_pr(k),k=1,re(i)%n_pr)
@@ -58,7 +85,7 @@ contains
     close(u)
 
     !! Get the species list from the species input file
-    open(newunit=u,file='mini_chem_sp.txt',status='old',action='read',form='formatted')
+    open(newunit=u,file='mini_chem_sp_HO.txt',status='old',action='read',form='formatted')
     do i = 1, 6
       read(u,*)
     end do
