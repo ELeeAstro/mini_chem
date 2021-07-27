@@ -1,0 +1,24 @@
+# Net-thermoreaction N-C-H-O network for GCMs
+1    [ OH + H2 -> H2O + H                 ]  3.57E-16     1.520    1740.0      1992OLD/LOG8426-8430      250-2580
+3    [ OH + CO -> H + CO2                 ]  1.05E-17     1.500     -250.0                         300-2000
+5    [ O + H2 -> OH + H                   ]  8.52E-20     2.670     3160.0                         300-2500
+7    [ OH + C -> CO + H                   ]  1.05E-12     0.500       0.0            Est. (change to KIDA or Jorfi 2010?)          
+
+# 3-body and Disscoiation Reactions
+# id	# Reactions                         	A_0     	B_0     	C_0     	A_inf   	B_inf   	C_inf		Ref 		  	Temp
+
+9   [ H + H + M -> H2 + M                ]  2.70E-31    -0.600       0.0      3.31E-06    -1.000       0.0                             100-5000, ??
+ 
+# 3-body reactions without high-pressure rates
+# id	# Reactions                         	A_0     	B_0     	C_0        	Ref 		  	   Temp												
+ 
+# special cases (net reactions) 
+# id	# Reactions 
+11   [ CH4 + H2O -> CO + H2 + H2 + H2     ]  
+13   [ CH4 + CH4 -> C2H2 + H2 + H2 + H2   ]
+15   [ CH4 + CH4 -> C2H6 + H2             ] 
+17   [ CH4 + CO -> C2H2 + H + OH          ]
+19   [ NH3 + NH3 -> N2 + H2 + H2 + H2     ]
+21   [ CH4 + NH3 -> HCN + H2 + H2 + H2    ]
+23   [ CO + NH3 -> HCN + H2O              ] 
+25   [ C2H2 + H2 + H2 -> C2H6             ]

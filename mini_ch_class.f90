@@ -33,6 +33,10 @@ module mini_ch_class
   real(dp), parameter :: R = 8.31446261815324e7_dp
   real(dp), parameter :: P0 = 1.0e6_dp
 
+  real(dp), parameter :: f_con = 0.5_dp
+  real(dp), parameter :: del_con = 0.01_dp
+  real(dp), parameter :: eps_con = 1.0e-4_dp
+
   integer :: n_reac, n_sp
   type(reaction), allocatable, dimension(:) :: re
   type(species), allocatable, dimension(:) :: g_sp
@@ -83,6 +87,29 @@ contains
       & + a22 * (xval - x1) * (yval - y1) * norm
 
   end subroutine bilinear_interp
+
+  subroutine bilinear_log_interp(xval, yval, x1, x2, y1, y2, a11, a21, a12, a22, aval)
+    implicit none
+
+    real(dp), intent(in) :: xval, yval, x1, x2, y1, y2, a11, a21, a12, a22
+    real(dp), intent(out) :: aval
+
+    real(dp) :: lxval, lyval, lx1, lx2, ly1, ly2, la11, la21, la12, la22
+    real(dp) :: norm
+
+    lxval = log10(xval); lyval = log10(yval)
+    lx1 = log10(x1);  lx2 = log10(x2)
+    ly1 = log10(y1);  ly2 = log10(y2)
+    la11 = log10(a11); la21 = log10(a21); la12 = log10(a12); la22 = log10(a22)
+
+    norm = 1.0_dp / (lx2 - lx1) / (ly2 - ly1)
+
+    aval = 10.0**(la11 * (lx2 - lxval) * (ly2 - lyval) * norm &
+      & + la21 * (lxval - lx1) * (ly2 - lyval) * norm &
+      & + la12 * (lx2 - lxval) * (lyval - ly1) * norm &
+      & + la22 * (lxval - lx1) * (lyval - ly1) * norm)
+
+  end subroutine bilinear_log_interp
 
 
 

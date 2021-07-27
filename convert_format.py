@@ -1,6 +1,6 @@
 import numpy as np
 
-fname = 'NCHO-solar-CH4-CO-netrate.txt'
+fname = 'NCHO-solar-C-CO-C2H2-netrate.txt'
 data = np.loadtxt(fname,skiprows=2,usecols=(0,1,2))
 
 T = data[:,0]
@@ -17,11 +17,11 @@ nf = len(kf)
 print(nT, T)
 print(nP, P)
 
-fout = 'CHO-solar-CH4-CO.txt'
+fout = 'CHON-solar-C-CO-C2H2.txt'
 
 f = open(fout,'w')
 
-f.write('# For the net reaction CH4 + H2O -> CO + H2 + H2 + H2'  + '\n')
+f.write('# For the net reaction C + CO + H2 -> C2H2 + O'  + '\n')
 f.write(str(nT) + ' ' + str(nP) + ' ' + str(nf) + '\n')
 f.write('T [K]' + '\n')
 f.write(" ".join(str(g) for g in T[:]) + '\n')

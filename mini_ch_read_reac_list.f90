@@ -5,13 +5,14 @@ module mini_ch_read_reac_list
 
 contains
 
-  subroutine read_react_list()
+  subroutine read_react_list(data_file, sp_file)
     implicit none
 
+    character(len=200), intent(in) :: data_file, sp_file
     integer :: i, u, j, k, u2
 
     !! Read in the reaction list
-    open(newunit=u,file='mini_chem_data_HO.txt',status='old',action='read',form='formatted')
+    open(newunit=u,file=trim(data_file),status='old',action='read',form='formatted')
 
     do i = 1, 7
       read(u,*)
@@ -85,7 +86,7 @@ contains
     close(u)
 
     !! Get the species list from the species input file
-    open(newunit=u,file='mini_chem_sp_HO.txt',status='old',action='read',form='formatted')
+    open(newunit=u,file=trim(sp_file),status='old',action='read',form='formatted')
     do i = 1, 6
       read(u,*)
     end do
