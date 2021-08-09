@@ -9,13 +9,14 @@ module mini_ch_i_rodas
 
 contains
 
-  subroutine mini_ch_rodas(T, P, t_end, VMR, network)
+  subroutine mini_ch_rodas(T, P, t_end, VMR, nd_out, network)
     implicit none
 
     real(dp), intent(in) :: T, P, t_end
-    real(dp), dimension(n_sp), intent(inout) :: VMR
+    real(dp), dimension(n_sp), intent(in) :: VMR
     character(len=200), intent(in) :: network
 
+    real(dp), dimension(n_sp), intent(out) :: nd_out
 
     integer :: ncall
     real(dp) :: P_cgs
@@ -146,8 +147,7 @@ contains
 
     end do
 
-    ! End result is update to VMR for all species
-    VMR(:) = g_sp(:)%nd/sum(g_sp(:)%nd)
+    nd_out(:)= g_sp(:)%nd
 
     deallocate(rwork, iwork)
 

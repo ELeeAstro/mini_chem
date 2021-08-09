@@ -14,7 +14,7 @@ program mini_chem_main
   real(dp) :: t_step, t_now
   integer :: n_sp
   integer, parameter :: n_solver = 5
-  real(dp), allocatable, dimension(:) :: VMR, VMR_IC
+  real(dp), allocatable, dimension(:) :: VMR, VMR_IC, nd_out
   real(dp), allocatable, dimension(:,:) :: VMR_cp
   character(len=200) :: data_file, sp_file, network
 
@@ -26,7 +26,7 @@ program mini_chem_main
   open(newunit=u_nml, file='mini_chem.nml', status='old', action='read')
   read(u_nml, nml=mini_chem)
   !! Read VMRs from namelist
-  allocate(VMR(n_sp),VMR_IC(n_sp), VMR_cp(n_solver, n_sp))
+  allocate(VMR(n_sp),VMR_IC(n_sp), VMR_cp(n_solver, n_sp), nd_out(n_sp))
   read(u_nml, nml=mini_chem_VMR)
   close(u_nml)
 
@@ -86,31 +86,36 @@ program mini_chem_main
 
     ! Call seulex - implicit Euler solver
     VMR(:) = VMR_cp(1,:)
-    call mini_ch_seulex(T_in, P_in, t_step, VMR, network)
+    call mini_ch_seulex(T_in, P_in, t_step, VMR, nd_out, network)
+    VMR(:) = nd_out(:)/sum(nd_out(:))
     print*, 'seulex: ', VMR(:), sum(VMR(:))
     VMR_cp(1,:) = VMR(:)
 
     ! Call rodas O(4) Rosenbrock method
     VMR(:) = VMR_cp(2,:)
-    call mini_ch_rodas(T_in, P_in, t_step, VMR, network)
+    call mini_ch_rodas(T_in, P_in, t_step, VMR, nd_out, network)
+    VMR(:) = nd_out(:)/sum(nd_out(:))
     print*, 'rodas: ', VMR(:), sum(VMR(:))
     VMR_cp(2,:) = VMR(:)
 
-    ! Call radau5 O(5) - implict Runge-Kutta method
+    ! Call radau5 O(5) - implicit Runge-Kutta method
     VMR(:) = VMR_cp(3,:)
-    call mini_ch_radau5(T_in, P_in, t_step, VMR, network)
+    call mini_ch_radau5(T_in, P_in, t_step, VMR, nd_out, network)
+    VMR(:) = nd_out(:)/sum(nd_out(:))
     print*, 'radau5: ', VMR(:), sum(VMR(:))
     VMR_cp(3,:) = VMR(:)
 
     ! Call dvode - bdf method
     VMR(:) = VMR_cp(4,:)
-    call mini_ch_dvode(T_in, P_in, t_step, VMR, network)
+    call mini_ch_dvode(T_in, P_in, t_step, VMR, nd_out, network)
+    VMR(:) = nd_out(:)/sum(nd_out(:))
     print*, 'dvode: ', VMR(:), sum(VMR(:))
     VMR_cp(4,:) = VMR(:)
 
     ! Call dlsode - bdf method
     VMR(:) = VMR_cp(5,:)
-    call mini_ch_dlsode(T_in, P_in, t_step, VMR, network)
+    call mini_ch_dlsode(T_in, P_in, t_step, VMR, nd_out, network)
+    VMR(:) = nd_out(:)/sum(nd_out(:))
     print*, 'dlsode: ', VMR(:), sum(VMR(:))
     VMR_cp(5,:) = VMR(:)
 
