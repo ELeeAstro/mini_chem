@@ -54,6 +54,8 @@ program mini_chem_main
   ! VMR(8) = 0.1_dp
   ! VMR(9) = 0.0_dp
 
+  VMR(:) = max(1.0e-30_dp,VMR(:))
+
   print*, 'T [K], P [bar], t_step, n_step, n_sp :'
   print*, T_in, P_in/1e5_dp, t_step, n_step, n_sp
 
@@ -91,14 +93,14 @@ program mini_chem_main
 
     ! Call rodas O(4) Rosenbrock method
     VMR(:) = VMR_cp(2,:)
-    !call mini_ch_rodas(T_in, P_in, t_step, VMR, nd_out, network)
+    call mini_ch_rodas(T_in, P_in, t_step, VMR, nd_out, network)
     VMR(:) = nd_out(:)/sum(nd_out(:))
     print*, 'rodas: ', VMR(:), sum(VMR(:))
     VMR_cp(2,:) = VMR(:)
 
     ! Call radau5 O(5) - implicit Runge-Kutta method
     VMR(:) = VMR_cp(3,:)
-    !call mini_ch_radau5(T_in, P_in, t_step, VMR, nd_out, network)
+    call mini_ch_radau5(T_in, P_in, t_step, VMR, nd_out, network)
     VMR(:) = nd_out(:)/sum(nd_out(:))
     print*, 'radau5: ', VMR(:), sum(VMR(:))
     VMR_cp(3,:) = VMR(:)
