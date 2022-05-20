@@ -54,8 +54,6 @@ program mini_chem_main
   ! VMR(8) = 0.1_dp
   ! VMR(9) = 0.0_dp
 
-  VMR(:) = max(1.0e-30_dp,VMR(:))
-
   print*, 'T [K], P [bar], t_step, n_step, n_sp :'
   print*, T_in, P_in/1e5_dp, t_step, n_step, n_sp
 

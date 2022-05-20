@@ -41,6 +41,7 @@ CH4, CH4, C2H2, H2, H2, H2
 2, 2, 'solar-CO-CH4-C2H2.txt'
 1, 1, 1, 1
 CO, CH4, C2H2, H2O
+#
 4, 300, 3500
 2, 4, 'solar-NH3-N2.txt'
 1, 1, 1, 1, 1, 1
