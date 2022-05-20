@@ -1,18 +1,18 @@
 &mini_chem
 
-network = 'CHON'
+network = 'CHO'
 
-T_in = 1000.0
+T_in = 3000.0
 P_in = 1.0e5
 
 t_step = 30
 n_step = 1
 
-n_sp = 14
+n_sp = 9
 
 
-data_file = 'mini_chem_data_CHON.txt'
-sp_file = 'mini_chem_sp_CHON.txt'
+data_file = 'mini_chem_data_CHO.txt'
+sp_file = 'mini_chem_sp_CHO.txt'
 
 
 /
@@ -20,8 +20,8 @@ sp_file = 'mini_chem_sp_CHON.txt'
 &mini_chem_VMR
 
 !VMR = 0.0, 0.8, 0.0, 0.0, 0.2
-!VMR = 0.0, 0.8, 0.0, 0.0, 0.0, 0.0, 0.1, 0.1, 0.0, 0.0, 0.0
-VMR = 0.0, 0.7, 0.0, 0.0, 0.0, 0.0, 0.1, 0.1, 0.0, 0.0, 0.0, 0.1, 0.0, 0.0
+VMR = 0.0, 0.7, 0.1, 0.1, 0.0, 0.0, 0.0, 0.1, 0.0
+!VMR = 0.0, 0.7, 0.0, 0.0, 0.0, 0.0, 0.1, 0.1, 0.0, 0.0, 0.0, 0.1
 
 
 /

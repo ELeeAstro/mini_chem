@@ -1,4 +1,4 @@
-# VULCAN C-H-O mini-network for GCMs
+# VULCAN N-C-H-O mini-network for GCMs
 # in the form of k = A T^B exp(-C/T)
 # Two-body Reactions
 # id	Reactions                           	A            B          C    		Ref 			Temp
@@ -15,4 +15,7 @@
   9	[ CH4 + H2O -> CO + H2 + H2 + H2     ]
  11	[ CH4 + CH4 -> C2H2 + H2 + H2 + H2   ]
  13	[ CO + CH4 -> C2H2 + H2O             ]
+ 15	[ NH3 + NH3 -> N2 + H2 + H2 + H2     ]
+ 17	[ CH4 + NH3 -> HCN + H2 + H2 + H2    ]
+ 19	[ CO + NH3 -> HCN + H2O              ]
 # reverse stops

@@ -5,7 +5,7 @@
 # Stoichiometric factors for each species
 # reactant and product species
 # Number of reactions:
-13
+10
 #
 2, 250, 2500
 2, 2, 3.57e-16, 1.52, 1740.0
@@ -22,52 +22,36 @@ OH, CO, H, CO2
 1, 1, 1, 1
 O, H2, OH, H
 #
-2, 300, 3500
-2, 2, 1.05e-12, 0.5, 0.0
-1, 1, 1, 1
-OH, C, CO, H
-#
 3, 300, 3500
 2, 1, 2.7e-31, -0.6, 0.0, 3.31e-6, -1.0, 0.0
 1, 1, 1
 H, H, H2
 #
 4, 300, 3500
-2, 4, 'CHON-solar-CH4-CO.txt'
+2, 4, 'solar-CH4-CO.txt'
 1, 1, 1, 1, 1, 1,
 CH4, H2O, CO, H2, H2, H2
 #
 4, 300, 3500
-2, 4, 'CHON-solar-CH4-C2H2.txt'
+2, 4, 'solar-CH4-C2H2.txt'
 1, 1, 1, 1, 1, 1
 CH4, CH4, C2H2, H2, H2, H2
 #
 4, 300, 3500
-2, 2, 'CHON-solar-CH4-C2H6.txt'
+2, 2, 'solar-CO-CH4-C2H2.txt'
 1, 1, 1, 1
-CH4, CH4, C2H6, H2
-#
+CO, CH4, C2H2, H2O
 4, 300, 3500
-2, 3, 'CHON-solar-CH4-CO-C2H2.txt'
-1, 1, 1, 1, 1
-CH4, CO, C2H2, H, OH
-#
-4, 300, 3500
-2, 4, 'CHON-solar-NH3-N2.txt'
+2, 4, 'solar-NH3-N2.txt'
 1, 1, 1, 1, 1, 1
 NH3, NH3, N2, H2, H2, H2
 #
 4, 300, 3500
-2, 4, 'CHON-solar-CH4-NH3-HCN.txt'
+2, 4, 'solar-CH4-HCN.txt'
 1, 1, 1, 1, 1, 1
 CH4, NH3, HCN, H2, H2, H2
 #
 4, 300, 3500
-2, 2, 'CHON-solar-CO-HCN.txt'
+2, 2, 'solar-CO-HCN.txt'
 1, 1, 1, 1
 CO, NH3, HCN, H2O
-#
-4, 300, 3500
-3, 1, 'CHON-solar-C2H2-C2H6.txt'
-1, 1, 1, 1
-C2H2, H2, H2, C2H6
