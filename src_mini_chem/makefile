@@ -53,7 +53,7 @@ mini_ch_main.o \
 
 
 # executable statement
-EXECS  = mini_chem
+EXECS  = ../mini_chem
 
 .SUFFIXES : .o .f90 .f
 

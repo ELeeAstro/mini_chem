@@ -43,7 +43,7 @@ contains
       ! Read reaction rate table if from table
       if (re(i)%re_t == 4) then
         print*, 'Reading: ', trim(re(i)%fname)
-        open(newunit=u2,file=trim(re(i)%fname),status='old',action='read',form='formatted')
+        open(newunit=u2,file='chem_data/'//trim(re(i)%fname),status='old',action='read',form='formatted')
         read(u2,*)
         read(u2,*) re(i)%nT, re(i)%nP, re(i)%nkf
         allocate(re(i)%T(re(i)%nT), re(i)%P(re(i)%nP), re(i)%kf(re(i)%nT,re(i)%nP))

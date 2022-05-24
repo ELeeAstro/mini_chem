@@ -7,31 +7,33 @@ import seaborn as sns
 plt.rc('text', usetex=False)
 plt.rc('font', family='serif')
 
-# fname = 'solar-CH4-C2H2.txt'
-# title = r'CH$_{4}$ + CH$_{4}$ $\rightarrow$ C$_{2}$H$_{2}$ + 3H$_{2}$'
+path = '../netrate_tables/'
 
-# fname = 'solar-CH4-CO.txt'
+fname = 'solar-CH4-C2H2.txt'
+title = r'CH$_{4}$ + CH$_{4}$ $\rightarrow$ C$_{2}$H$_{2}$ + 3H$_{2}$'
+
+# fname = path+'solar-CH4-CO.txt'
 # title = r'CH$_{4}$ + H$_{2}$O $\rightarrow$ CO + 3H$_{2}$'
 
-# fname = 'solar-CH4-HCN.txt'
+# fname = path+'solar-CH4-HCN.txt'
 # title = r'CH$_{4}$ + NH$_{3}$ $\rightarrow$ HCN + 3H$_{2}$'
 
-# fname = 'solar-CO-CH4-C2H2.txt'
+# fname = path+'solar-CO-CH4-C2H2.txt'
 # title = r'CO + CH$_{4}$  $\rightarrow$ C$_{2}$H$_{2}$ + H$_{2}$O'
 
-# fname = 'solar-CO-HCN.txt'
+# fname = path+'solar-CO-HCN.txt'
 # title = r'CO + NH$_{3}$ $\rightarrow$ HCN + H$_{2}$O'
 
-fname = 'solar-NH3-N2.txt'
-title = r'NH$_{3}$ + NH$_{3}$ $\rightarrow$ N$_{2}$ + 3H$_{2}$'
+# fname = path+'solar-NH3-N2.txt'
+# title = r'NH$_{3}$ + NH$_{3}$ $\rightarrow$ N$_{2}$ + 3H$_{2}$'
 
-T = np.loadtxt(fname,max_rows=1,skiprows=3)
-p = np.loadtxt(fname,max_rows=1,skiprows=5)
+T = np.loadtxt(path+fname,max_rows=1,skiprows=3)
+p = np.loadtxt(path+fname,max_rows=1,skiprows=5)
 
 nT = len(T)
 nP = len(p)
 
-kf_1D = np.loadtxt(fname,skiprows=7)
+kf_1D = np.loadtxt(path+fname,skiprows=7)
 kf1 = np.zeros((nT,nP))
 kf1 = np.log10(kf_1D.reshape((nT,nP)))
 
@@ -79,6 +81,6 @@ plt.tick_params(axis='both',which='major',labelsize=11)
 # Save figure
 #plt.tight_layout(pad=1.05, h_pad=None, w_pad=None, rect=None)
 
-plt.savefig('netrate_contour_plots/'+fname+'.pdf',dpi=300,bbox_inches='tight')
+plt.savefig(fname+'.pdf',dpi=300,bbox_inches='tight')
 
 plt.show()
