@@ -50,7 +50,7 @@ contains
     ! ***  parameters for the RADAU5-solver  ***
     ! -----------------------------------------
 
-    rtol = 1.0e-4_dp
+    rtol = 1.0e-3_dp
     atol = 1.0e-99_dp
     itol = 0
     ijac = 1

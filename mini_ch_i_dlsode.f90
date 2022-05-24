@@ -66,7 +66,7 @@ contains
       allocate(rtol(n_sp), atol(n_sp), rwork(rworkdim), iwork(iworkdim))
 
       itol = 4
-      rtol(:) = 1.0e-4_dp           ! Relative tolerances for each scalar
+      rtol(:) = 1.0e-3_dp           ! Relative tolerances for each scalar
       atol(:) = 1.0e-99_dp          ! Absolute tolerance for each scalar (floor value)
 
       rwork(1) = t_end              ! Critical T value (don't integrate past time here)
@@ -75,7 +75,10 @@ contains
       iwork(5:10) = 0
 
       rwork(5) = 1.0e-99_dp        ! Initial starting timestep (start low, will adapt in DVODE)
-      rwork(6) = t_end             ! Maximum timestep (for heavy evaporation ~0.1 is required)
+      rwork(6) = 0.0_dp              ! Maximum timestep (for heavy evaporation ~0.1 is required)
+      rwork(7) = 0.0_dp         ! Minimum timestep
+      
+      iwork(5) = 0
       iwork(6) = 100000             ! Max number of internal steps
 
     else

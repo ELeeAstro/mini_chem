@@ -66,7 +66,7 @@ contains
       allocate(rtol(n_sp), atol(n_sp), rwork(rworkdim), iwork(iworkdim))
 
       itol = 4
-      rtol(:) = 1.0e-4_dp           ! Relative tolerances for each scalar
+      rtol(:) = 1.0e-3_dp           ! Relative tolerances for each scalar
       atol(:) = 1.0e-99_dp          ! Absolute tolerance for each scalar (floor value)
 
       rwork(1) = t_end              ! Critical T value (don't integrate past time here)
@@ -86,7 +86,7 @@ contains
       iworkdim = 30 + n_sp
       allocate(rtol(n_sp), atol(n_sp), rwork(rworkdim), iwork(iworkdim))
       itol = 4
-      rtol(:) = 1.0e-4_dp
+      rtol(:) = 1.0e-3_dp
       atol(:) = 1.0e-99_dp
 
       rwork(1) = t_end
