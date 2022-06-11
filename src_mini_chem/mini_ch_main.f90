@@ -7,13 +7,14 @@ program mini_chem_main
   use mini_ch_i_radau5, only : mini_ch_radau5
   use mini_ch_i_dvode, only : mini_ch_dvode
   use mini_ch_i_dlsode, only : mini_ch_dlsode
+  use mini_ch_i_Rosenbrock, only : mini_ch_Rosenbrock
   implicit none
 
   integer :: n, n_step, u_nml
   real(dp) :: T_in, P_in
   real(dp) :: t_step, t_now
   integer :: n_sp
-  integer, parameter :: n_solver = 5
+  integer, parameter :: n_solver = 6
   real(dp), allocatable, dimension(:) :: VMR, VMR_IC, nd_out
   real(dp), allocatable, dimension(:,:) :: VMR_cp
   character(len=200) :: data_file, sp_file, network
@@ -84,38 +85,45 @@ program mini_chem_main
 
     ! Call seulex - implicit Euler solver
     VMR(:) = VMR_cp(1,:)
-    call mini_ch_seulex(T_in, P_in, t_step, VMR, nd_out, network)
+    !call mini_ch_seulex(T_in, P_in, t_step, VMR, nd_out, network)
     VMR(:) = nd_out(:)/sum(nd_out(:))
     print*, 'seulex: ', VMR(:), sum(VMR(:))
     VMR_cp(1,:) = VMR(:)
 
     ! Call rodas O(4) Rosenbrock method
     VMR(:) = VMR_cp(2,:)
-    call mini_ch_rodas(T_in, P_in, t_step, VMR, nd_out, network)
+    !call mini_ch_rodas(T_in, P_in, t_step, VMR, nd_out, network)
     VMR(:) = nd_out(:)/sum(nd_out(:))
     print*, 'rodas: ', VMR(:), sum(VMR(:))
     VMR_cp(2,:) = VMR(:)
 
     ! Call radau5 O(5) - implicit Runge-Kutta method
     VMR(:) = VMR_cp(3,:)
-    call mini_ch_radau5(T_in, P_in, t_step, VMR, nd_out, network)
+    !call mini_ch_radau5(T_in, P_in, t_step, VMR, nd_out, network)
     VMR(:) = nd_out(:)/sum(nd_out(:))
     print*, 'radau5: ', VMR(:), sum(VMR(:))
     VMR_cp(3,:) = VMR(:)
 
     ! Call dvode - bdf method
     VMR(:) = VMR_cp(4,:)
-    call mini_ch_dvode(T_in, P_in, t_step, VMR, nd_out, network)
-    VMR(:) = nd_out(:)/sum(nd_out(:))
+    !call mini_ch_dvode(T_in, P_in, t_step, VMR, nd_out, network)
+    !VMR(:) = nd_out(:)/sum(nd_out(:))
     print*, 'dvode: ', VMR(:), sum(VMR(:))
     VMR_cp(4,:) = VMR(:)
 
     ! Call dlsode - bdf method
     VMR(:) = VMR_cp(5,:)
-    call mini_ch_dlsode(T_in, P_in, t_step, VMR, nd_out, network)
+    !call mini_ch_dlsode(T_in, P_in, t_step, VMR, nd_out, network)
     VMR(:) = nd_out(:)/sum(nd_out(:))
     print*, 'dlsode: ', VMR(:), sum(VMR(:))
     VMR_cp(5,:) = VMR(:)
+
+    ! Call Rosenbrock 23 method
+    VMR(:) = VMR_cp(6,:)
+    call mini_ch_Rosenbrock(T_in, P_in, t_step, VMR, nd_out, network)
+    VMR(:) = nd_out(:)/sum(nd_out(:))
+    print*, 'rodas: ', VMR(:), sum(VMR(:))
+    VMR_cp(6,:) = VMR(:)
 
     ! Update time
     t_now = t_now + t_step
