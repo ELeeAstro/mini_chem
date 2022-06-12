@@ -2,22 +2,20 @@ module mini_ch_i_Rosenbrock
   use mini_ch_precision
   use mini_ch_class
   use mini_ch_chem
-  use ROS_tlm_f90_Integrator, only : INTEGRATE_TLM
+  use ROS_f90_Integrator, only : INTEGRATE
   implicit none
 
-  public ::  mini_ch_Rosenbrock, RHS_update, jac_dummy, hess_dum, &
+  public ::  mini_ch_Rosenbrock, RHS_update, jac_dummy, &
   &  jac_HO, jac_CHO, jac_NCHO
 
 contains
 
-  subroutine mini_ch_Rosenbrock(T, P, t_end, VMR, nd_out, network)
+  subroutine mini_ch_Rosenbrock(T, P, t_end, VMR, network)
     implicit none
 
     real(dp), intent(in) :: T, P, t_end
-    real(dp), dimension(n_sp), intent(in) :: VMR
+    real(dp), dimension(n_sp), intent(inout) :: VMR
     character(len=200), intent(in) :: network
-
-    real(dp), dimension(n_sp), intent(out) :: nd_out
 
     integer :: ncall
     real(dp) :: P_cgs
@@ -27,10 +25,9 @@ contains
     logical :: con = .False.
 
     ! Rosenbrock variables
-    integer :: ntlm, nnzero
-    real(dp), dimension(n_sp) :: rtol, atol, rtol_tlm, atol_tlm
+    integer :: ierr, nnzero
+    real(dp), dimension(n_sp) :: rtol, atol
     real(dp), dimension(n_sp) :: y
-    real(dp), dimension(n_sp, 1) :: y_tlm
     integer, dimension(20) :: icntrl, istatus
     real(dp), dimension(20) :: rcntrl, rstatus
 
@@ -53,28 +50,23 @@ contains
 
     t_begin = 0.0_dp
     t_now = t_begin
-    dt_init = 1.0e-10_dp
+    dt_init = 1.0e-99_dp
 
     rtol(:) = 1.0e-3_dp
     atol(:) = 1e-99_dp
 
-    rtol_tlm(:) = rtol(:)
-    atol_tlm(:) = atol(:)
-
-    ntlm = n_sp
     nnzero = n_sp
 
-    icntrl(1:20) = 0
+    icntrl(:) = 0
 
-    ! icntrl(1) = 1
-    ! icntrl(2) = 0
-    ! icntrl(3) = 2
-    ! icntrl(4) = 0
-    ! icntrl(12) = 0
+    icntrl(1) = 0
+    icntrl(2) = 0
+    icntrl(3) = 2
+    icntrl(4) = 0
 
-    rcntrl(1:20) = 0.0_dp
-    !
-    ! rcntrl(1) = 1.0e-10_dp
+    rcntrl(:) = 0.0_dp
+
+    ! rcntrl(1) = 0.0_dp
     ! rcntrl(2) = t_end
     ! rcntrl(3) = dt_init
     ! rcntrl(4) = 0.2_dp
@@ -83,12 +75,11 @@ contains
     ! rcntrl(7) = 0.9_dp
 
 
-    istatus(1:20) = 0
-    rstatus(1:20) = 0.0_dp
-
-    y_tlm(:,:) = 0.0_dp
+    istatus(:) = 0
+    rstatus(:) = 0.0_dp
 
     ncall = 1
+
 
     do while((t_now < t_end))
 
@@ -99,17 +90,14 @@ contains
 
       select case(network)
       case('HO')
-        call INTEGRATE_TLM(n_sp, ntlm, nnzero, y, y_tlm, t_now, t_end, &
-          & atol_tlm, rtol_tlm, atol, rtol, RHS_update, jac_HO, hess_dum, &
-          & icntrl, rcntrl, istatus, rstatus)
+        call INTEGRATE(t_now, t_end, n_sp, nnzero, y, rtol, atol, RHS_update, jac_HO,&
+          icntrl, rcntrl, istatus, rstatus, ierr )
       case('CHO')
-        call INTEGRATE_TLM(n_sp, ntlm, nnzero, y, y_tlm, t_now, t_end, &
-          & atol_tlm, rtol_tlm, atol, rtol, RHS_update, jac_CHO, hess_dum, &
-          & icntrl, rcntrl, istatus, rstatus)
+        call INTEGRATE(t_now, t_end, n_sp, nnzero, y, rtol, atol, RHS_update, jac_CHO,&
+          icntrl, rcntrl, istatus, rstatus, ierr )
       case('NCHO')
-        call INTEGRATE_TLM(n_sp, ntlm, nnzero, y, y_tlm, t_now, t_end, &
-          & atol_tlm, rtol_tlm, atol, rtol, RHS_update, jac_NCHO, hess_dum, &
-          & icntrl, rcntrl, istatus, rstatus)
+        call INTEGRATE(t_now, t_end, n_sp, nnzero, y, rtol, atol, RHS_update, jac_NCHO,&
+          icntrl, rcntrl, istatus, rstatus, ierr )
       case default
         print*, 'Invalid network provided: ', trim(network)
         stop
@@ -133,7 +121,7 @@ contains
 
     end do
 
-    nd_out(:)= g_sp(:)%nd
+    VMR(:) = g_sp(:)%nd/sum(g_sp(:)%nd)
 
   end subroutine mini_ch_Rosenbrock
 
@@ -503,12 +491,5 @@ contains
     dfy(5, 5) = -re(2)%f*y(2)
 
   end subroutine jac_HO
-
-  subroutine hess_dum(n,t,y,u,v,hv)
-    ! hv = (f_yy x v) * u = (d(u*f_y)/dy) * v
-    integer, intent(in) :: n
-    double precision, intent(in) :: t,y(n),u(n),v(n)
-    double precision, intent(inout) :: hv(n)
-  end subroutine hess_dum
 
 end module mini_ch_i_Rosenbrock

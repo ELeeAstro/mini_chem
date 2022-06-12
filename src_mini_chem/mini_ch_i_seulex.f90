@@ -9,14 +9,12 @@ module mini_ch_i_seulex
 
 contains
 
-  subroutine mini_ch_seulex(T, P, t_end, VMR, nd_out, network)
+  subroutine mini_ch_seulex(T, P, t_end, VMR, network)
     implicit none
 
     real(dp), intent(in) :: T, P, t_end
-    real(dp), dimension(n_sp), intent(in) :: VMR
+    real(dp), dimension(n_sp), intent(inout) :: VMR
     character(len=200), intent(in) :: network
-
-    real(dp), dimension(n_sp), intent(out) :: nd_out
 
     integer :: ncall
     real(dp) :: P_cgs
@@ -149,8 +147,7 @@ contains
 
     end do
 
-    nd_out(:) = g_sp(:)%nd
-
+    VMR(:) = g_sp(:)%nd/sum(g_sp(:)%nd)
 
     deallocate(rwork, iwork)
 
