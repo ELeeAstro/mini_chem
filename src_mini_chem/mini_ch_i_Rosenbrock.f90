@@ -1,15 +1,16 @@
-module mini_ch_i_radau5
+module mini_ch_i_Rosenbrock
   use mini_ch_precision
   use mini_ch_class
   use mini_ch_chem
+  use ROS_f90_Integrator, only : INTEGRATE
   implicit none
 
-  public ::  mini_ch_radau5, RHS_update, jac_dummy, mas_dummy, solout, &
-  & jac_HO, jac_CHO, jac_NCHO
+  public ::  mini_ch_Rosenbrock, RHS_update, jac_dummy, &
+  &  jac_HO, jac_CHO, jac_NCHO
 
 contains
 
-  subroutine mini_ch_radau5(T, P, t_end, VMR, network)
+  subroutine mini_ch_Rosenbrock(T, P, t_end, VMR, network)
     implicit none
 
     real(dp), intent(in) :: T, P, t_end
@@ -23,17 +24,16 @@ contains
     real(dp) :: t_begin, t_now, dt_init, t_old
     logical :: con = .False.
 
-    ! radau5 variables
+    ! Rosenbrock variables
+    integer :: ierr, nnzero
+    real(dp), dimension(n_sp) :: rtol, atol
     real(dp), dimension(n_sp) :: y
-    real(dp), allocatable, dimension(:) :: rwork
-    integer, allocatable, dimension(:) :: iwork
-    real(dp) :: rtol, atol
-    real(dp) :: rpar
-    integer :: itol, ijac, mljac, mujac, imas, mlmas, mumas, iout, lrwork, liwork, ipar, idid
+    integer, dimension(20) :: icntrl, istatus
+    real(dp), dimension(20) :: rcntrl, rstatus
 
     !! Find the number density of the atmosphere
     P_cgs = P * 10.0_dp   ! Convert pascal to dyne cm-2
-    nd_atm = P_cgs/(kb*T)  ! Find number density [cm-3] of atmosphere
+    nd_atm = P_cgs/(kb*T)  ! Find number density (cm-3] of atmosphere
 
     !! Find initial number density of all species from VMR
     g_sp(:)%nd = nd_atm * VMR(:)
@@ -45,58 +45,41 @@ contains
 
 
     ! -----------------------------------------
-    ! ***  parameters for the RADAU5-solver  ***
+    ! ***  parameters for the Rosenbrock-solver  ***
     ! -----------------------------------------
-
-    rtol = 1.0e-3_dp
-    atol = 1.0e-99_dp
-    itol = 0
-    ijac = 1
-    mljac = n_sp
-    mujac = 0
-    imas = 0
-    mlmas = n_sp
-    mumas = 0
-    iout = 0
-    idid = 0
-
-    ! Real work array
-    lrwork = 4*n_sp**2 + 12*n_sp + 20
-    allocate(rwork(lrwork))
-    rwork(1:20) = 0.0_dp
-
-    rwork(1) = 1.0e-16_dp ! Rounding unit
-    rwork(2) = 0.90_dp ! Safety factor
-    rwork(3) = 0.1_dp  ! Small system Jacobian recompuation rate
-    rwork(4) = min(0.03_dp,sqrt(rtol)) ! stopping factor for Newton method
-    rwork(5) = 1.0_dp !  Small system reccomendation
-    rwork(6) = 1.2_dp  ! Small  system reccomendation
-    rwork(7) = t_end   ! Max step size
-    rwork(8) = 0.2_dp ! Step size selection 1
-    rwork(9) = 8.0_dp ! Step size selection 2
-
-    ! Integer work array
-    liwork = 3*n_sp + 20
-    allocate(iwork(liwork))
-    iwork(1:20) = 0
-
-    iwork(1) = 0 ! Hessenberg form?
-    iwork(2) = 0 !2500 ! Default step numbers 0 = 100000
-    iwork(3) = 7   ! Number of Newton iterations per step - default 7
-    iwork(4) = 1   ! Use zero stating values for Newton iterations? - default 0
-    iwork(5) = n_sp ! Dimension of system
-    iwork(6) = 0
-    iwork(7) = 0
-    iwork(8) = 1 ! Step size strategy
-
-    rpar = 0.0_dp
-    ipar = 0
 
     t_begin = 0.0_dp
     t_now = t_begin
     dt_init = 1.0e-99_dp
 
+    rtol(:) = 1.0e-3_dp
+    atol(:) = 1e-99_dp
+
+    nnzero = n_sp
+
+    icntrl(:) = 0
+
+    icntrl(1) = 0
+    icntrl(2) = 0
+    icntrl(3) = 2
+    icntrl(4) = 0
+
+    rcntrl(:) = 0.0_dp
+
+    ! rcntrl(1) = 0.0_dp
+    ! rcntrl(2) = t_end
+    ! rcntrl(3) = dt_init
+    ! rcntrl(4) = 0.2_dp
+    ! rcntrl(5) = 6.0_dp
+    ! rcntrl(6) = 0.1_dp
+    ! rcntrl(7) = 0.9_dp
+
+
+    istatus(:) = 0
+    rstatus(:) = 0.0_dp
+
     ncall = 1
+
 
     do while((t_now < t_end))
 
@@ -107,30 +90,21 @@ contains
 
       select case(network)
       case('HO')
-        call RADAU5(n_sp,RHS_update,t_now,y,t_end,dt_init, &
-          &                  rtol,atol,itol, &
-          &                  jac_HO,ijac,mljac,mujac, &
-          &                  mas_dummy,imas,mlmas,mumas, &
-          &                  solout,iout, &
-          &                  rwork,lrwork,iwork,liwork,rpar,ipar,idid)
+        call INTEGRATE(t_now, t_end, n_sp, nnzero, y, rtol, atol, RHS_update, jac_HO,&
+          icntrl, rcntrl, istatus, rstatus, ierr )
       case('CHO')
-        call RADAU5(n_sp,RHS_update,t_now,y,t_end,dt_init, &
-          &                  rtol,atol,itol, &
-          &                  jac_CHO,ijac,mljac,mujac, &
-          &                  mas_dummy,imas,mlmas,mumas, &
-          &                  solout,iout, &
-          &                  rwork,lrwork,iwork,liwork,rpar,ipar,idid)
+        call INTEGRATE(t_now, t_end, n_sp, nnzero, y, rtol, atol, RHS_update, jac_CHO,&
+          icntrl, rcntrl, istatus, rstatus, ierr )
       case('NCHO')
-        call RADAU5(n_sp,RHS_update,t_now,y,t_end,dt_init, &
-          &                  rtol,atol,itol, &
-          &                  jac_NCHO,ijac,mljac,mujac, &
-          &                  mas_dummy,imas,mlmas,mumas, &
-          &                  solout,iout, &
-          &                  rwork,lrwork,iwork,liwork,rpar,ipar,idid)
+        call INTEGRATE(t_now, t_end, n_sp, nnzero, y, rtol, atol, RHS_update, jac_NCHO,&
+          icntrl, rcntrl, istatus, rstatus, ierr )
       case default
         print*, 'Invalid network provided: ', trim(network)
         stop
       end select
+
+      t_now = rstatus(1)
+      rcntrl(3) = rstatus(2)
 
       if (t_now >= t_end*f_con) then
         call check_con(n_sp,g_sp(:)%nd,y(:),t_now,t_old,con)
@@ -142,25 +116,22 @@ contains
 
       g_sp(:)%nd = y(:)
 
+
       ncall = ncall + 1
 
     end do
 
     VMR(:) = g_sp(:)%nd/sum(g_sp(:)%nd)
 
-    deallocate(rwork, iwork)
+  end subroutine mini_ch_Rosenbrock
 
-  end subroutine mini_ch_radau5
-
-  subroutine RHS_update(NEQ, time, y, f, rpar, ipar)
+  subroutine RHS_update(n, time, y, f)
     implicit none
 
-    integer, intent(in) ::  NEQ
-    real(dp), intent(inout) :: time
-    real(dp), dimension(NEQ), intent(inout) :: y
-    real(dp), dimension(NEQ), intent(inout) :: f
-    real(dp), intent(inout) :: rpar
-    integer, intent(inout) :: ipar
+    integer, intent(in) :: n
+    real(dp), intent(in) :: time
+    real(dp), dimension(n), intent(in) :: y
+    real(dp), dimension(n), intent(inout) :: f
 
     integer :: i, j, k
     real(dp) :: msum, msum2
@@ -170,7 +141,7 @@ contains
     ! Update current number density of all species from y vector
     g_sp(:)%nd = y(:)
 
-    ! Calculate the rate of change of number density for all species [cm-3/s]
+    ! Calculate the rate of change of number density for all species (cm-3/s]
     ! this is the f vector
 
     ! Loop through reactions add rates to the f array
@@ -196,21 +167,29 @@ contains
         msum2 = msum2 * nd_atm
       end if
 
-      ! Find flux for products
+      ! Find flux contribution for products
       f(re(i)%gi_pr(:)) = f(re(i)%gi_pr(:)) + msum * re(i)%f - msum2 * re(i)%r
-
+      ! Find flux contribution for reactants
       f(re(i)%gi_re(:)) = f(re(i)%gi_re(:)) + msum2 * re(i)%r - msum * re(i)%f
 
     end do
 
   end subroutine RHS_update
 
-  subroutine jac_NCHO(N,X,Y,DFY,LDFY,RPAR,IPAR)
+  subroutine jac_dummy(n, time, Y, DFY)
+    integer, intent(in) :: n
+    real(dp), intent(in) :: time
+    real(dp), dimension(n), intent(in) :: y
+    real(dp), dimension(n,n), intent(inout) :: DFY
+  end subroutine jac_dummy
+
+  subroutine jac_NCHO(n, time, Y, DFY)
     implicit none
-    integer, intent(in) :: N, LDFY, ipar
-    real(dp), intent(in) :: X, RPAR
-    real(dp), dimension(N), intent(in) :: Y
-    real(dp), dimension(LDFY, N),intent(out) :: DFY
+
+    integer, intent(in) :: n
+    real(dp), intent(in) :: time
+    real(dp), dimension(n), intent(in) :: Y
+    real(dp), dimension(n,n),intent(inout) :: DFY
 
     nd_atm = sum(y(:))
 
@@ -368,12 +347,13 @@ contains
 
   end subroutine jac_NCHO
 
-  subroutine jac_CHO(N,X,Y,DFY,LDFY,RPAR,IPAR)
+  subroutine jac_CHO(n, time, Y, DFY)
     implicit none
-    integer, intent(in) :: N, LDFY, ipar
-    real(dp), intent(in) :: X, RPAR
-    real(dp), dimension(N), intent(in) :: Y
-    real(dp), dimension(LDFY, N),intent(out) :: DFY
+
+    integer, intent(in) :: n
+    real(dp), intent(in) :: time
+    real(dp), dimension(n), intent(in) :: Y
+    real(dp), dimension(n,n),intent(inout) :: DFY
 
     nd_atm = sum(y(:))
 
@@ -468,12 +448,13 @@ contains
 
   end subroutine jac_CHO
 
-  subroutine jac_HO(N,X,Y,DFY,LDFY,RPAR,IPAR)
+  subroutine jac_HO(n, time, Y, DFY)
     implicit none
-    integer, intent(in) :: N, LDFY, ipar
-    real(dp), intent(in) :: X, RPAR
-    real(dp), dimension(N), intent(in) :: Y
-    real(dp), dimension(LDFY, N),intent(out) :: DFY
+
+    integer, intent(in) :: n
+    real(dp), intent(in) :: time
+    real(dp), dimension(n), intent(in) :: Y
+    real(dp), dimension(n,n),intent(inout) :: DFY
 
     nd_atm = sum(y(:))
 
@@ -511,20 +492,4 @@ contains
 
   end subroutine jac_HO
 
-  subroutine jac_dummy(N,X,Y,DFY,LDFY,RPAR,IPAR)
-    integer :: N,LDFY,IPAR
-    double precision :: X,Y(N),DFY(LDFY,N),RPAR
-  end subroutine jac_dummy
-
-  subroutine mas_dummy(N,AM,LMAS,RPAR,IPAR)
-    integer :: N, LMAS, IPAR
-    double precision :: AM(LMAS,N), RPAR
-  end subroutine mas_dummy
-
-  subroutine solout(NR,XOLD,X,Y,CONT,LRC,N,RPAR,IPAR,IRTRN)
-    integer :: NR, LRC, N, IPAR, IRTRN
-    double precision :: XOLD, X, Y(N), CONT(LRC), RPAR
-  end subroutine solout
-
-
-end module mini_ch_i_radau5
+end module mini_ch_i_Rosenbrock

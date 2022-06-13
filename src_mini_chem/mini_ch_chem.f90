@@ -57,8 +57,9 @@ contains
         end if
         iT1 = iT + 1
 
-        Tl = re(i)%T(iT)
-        Tu = re(i)%T(iT1)
+        Tl = re(i)%lT(iT)
+        Tu = re(i)%lT(iT1)
+        Tw = log10(Tw)
 
         ! Find pressure index
         Pw = P
@@ -72,17 +73,19 @@ contains
         end if
         iP1 = iP + 1
 
-        Pl = re(i)%P(iP)
-        Pu = re(i)%P(iP1)
+        Pl = re(i)%lP(iP)
+        Pu = re(i)%lP(iP1)
+        Pw = log10(Pw)
 
         ! Bi-linearly interpolate from table to find kf
-        k11 = re(i)%kf(iT,iP)
-        k12 = re(i)%kf(iT,iP1)
-        k21 = re(i)%kf(iT1,iP)
-        k22 = re(i)%kf(iT1,iP1)
+        k11 = re(i)%lkf(iT,iP)
+        k12 = re(i)%lkf(iT,iP1)
+        k21 = re(i)%lkf(iT1,iP)
+        k22 = re(i)%lkf(iT1,iP1)
 
-       !call bilinear_interp(Tw, Pw, Tl, Tu, Pl, Pu, k11, k21, k12, k22, kf)
-       call bilinear_log_interp(Tw, Pw, Tl, Tu, Pl, Pu, k11, k21, k12, k22, kf)
+       call bilinear_interp(Tw, Pw, Tl, Tu, Pl, Pu, k11, k21, k12, k22, kf)
+       kf = 10.0_dp**kf
+       !call bilinear_log_interp(Tw, Pw, Tl, Tu, Pl, Pu, k11, k21, k12, k22, kf)
 
 
        ! print*, i

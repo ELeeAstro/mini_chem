@@ -11,14 +11,12 @@ module mini_ch_i_dlsode
 
 contains
 
-  subroutine mini_ch_dlsode(T, P, t_end, VMR, nd_out, network)
+  subroutine mini_ch_dlsode(T, P, t_end, VMR, network)
     implicit none
 
     real(dp), intent(in) :: T, P, t_end
-    real(dp), dimension(n_sp), intent(in) :: VMR
+    real(dp), dimension(n_sp), intent(inout) :: VMR
     character(len=200), intent(in) :: network
-
-    real(dp), dimension(n_sp), intent(out) ::  nd_out
 
     integer :: ncall
     real(dp) :: P_cgs
@@ -77,7 +75,7 @@ contains
       rwork(5) = 1.0e-99_dp        ! Initial starting timestep (start low, will adapt in DVODE)
       rwork(6) = 0.0_dp              ! Maximum timestep (for heavy evaporation ~0.1 is required)
       rwork(7) = 0.0_dp         ! Minimum timestep
-      
+
       iwork(5) = 0
       iwork(6) = 100000             ! Max number of internal steps
 
@@ -155,7 +153,7 @@ contains
 
     end do
 
-    nd_out(:) = g_sp(:)%nd
+    VMR(:) = g_sp(:)%nd/sum(g_sp(:)%nd)
 
     deallocate(rtol, atol, rwork, iwork)
 

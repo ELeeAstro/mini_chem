@@ -6,10 +6,9 @@ T_in = 1000.0
 P_in = 1.0e5
 
 t_step = 30
-n_step = 1
+n_step = 100
 
 n_sp = 12
-
 
 data_file = 'chem_data/mini_chem_data_NCHO.txt'
 sp_file = 'chem_data/mini_chem_sp_NCHO.txt'

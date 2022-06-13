@@ -47,18 +47,22 @@ contains
         read(u2,*)
         read(u2,*) re(i)%nT, re(i)%nP, re(i)%nkf
         allocate(re(i)%T(re(i)%nT), re(i)%P(re(i)%nP), re(i)%kf(re(i)%nT,re(i)%nP))
+        allocate(re(i)%lT(re(i)%nT), re(i)%lP(re(i)%nP), re(i)%lkf(re(i)%nT,re(i)%nP))
         read(u2,*)
         read(u2,*) (re(i)%T(j), j = 1, re(i)%nT)
+        re(i)%lT(:) = log10(re(i)%T(:))
         read(u2,*)
         read(u2,*) (re(i)%P(k), k = 1, re(i)%nP)
         ! Convert P from bar to dyne
         re(i)%P(:) = re(i)%P(:) * 1.0e6_dp
+        re(i)%lP(:) = log10(re(i)%P(:))
         read(u2,*)
         do j = 1,  re(i)%nT
           do k = 1, re(i)%nP
             read(u2,*) re(i)%kf(j,k)
           end do
         end do
+        re(i)%lkf(:,:) = log10(re(i)%kf(:,:))
         close(u2)
       end if
 
