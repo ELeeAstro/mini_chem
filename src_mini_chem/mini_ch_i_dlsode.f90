@@ -47,7 +47,7 @@ contains
     call reaction_rates(T, P_cgs)
 
     ! -----------------------------------------
-    ! ***  parameters for the DVODE solver  ***
+    ! ***  parameters for the DLSODE solver  ***
     ! -----------------------------------------
 
     itask = 1
@@ -72,8 +72,8 @@ contains
       rwork(5:10) = 0.0_dp
       iwork(5:10) = 0
 
-      rwork(5) = 0.0_dp        ! Initial starting timestep (start low, will adapt in DVODE)
-      rwork(6) = 0.0_dp              ! Maximum timestep (for heavy evaporation ~0.1 is required)
+      rwork(5) = 1e-99_dp        ! Initial starting timestep (start low, will adapt in DVODE)
+      rwork(6) = t_end * f_con   ! Maximum timestep (for heavy evaporation ~0.1 is required)
       rwork(7) = 0.0_dp         ! Minimum timestep
 
       iwork(5) = 0                 ! Order of calculation
@@ -145,9 +145,12 @@ contains
 
       ncall = ncall + 1
 
-      if (istate == -1) then
+      if (mod(ncall,50) == 0) then
+        istate = 1   
+      else  if (istate == -1) then
         istate = 2
       else if (istate < -1) then
+        print*, istate
         exit
       end if
 
