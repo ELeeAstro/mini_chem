@@ -101,22 +101,22 @@ program mini_chem_main
     print*, n, n_step, t_now
 
     ! Call seulex - implicit Euler solver
-    !call mini_ch_seulex(T_in, P_in, t_step, VMR_cp(1,:), network)
+    call mini_ch_seulex(T_in, P_in, t_step, VMR_cp(1,:), network)
     print*, 'seulex: ', VMR_cp(1,:), sum(VMR_cp(1,:))
     write(u(1),*) n, t_now, VMR_cp(1,:)
 
     ! Call rodas O(4) Rosenbrock method
-    !call mini_ch_rodas(T_in, P_in, t_step, VMR_cp(2,:), network)
+    call mini_ch_rodas(T_in, P_in, t_step, VMR_cp(2,:), network)
     print*, 'rodas: ', VMR_cp(2,:), sum(VMR_cp(2,:))
     write(u(2),*) n, t_now, VMR_cp(2,:)
 
     ! Call radau5 O(5) - implicit Runge-Kutta method
-    !call mini_ch_radau5(T_in, P_in, t_step, VMR_cp(3,:), network)
+    call mini_ch_radau5(T_in, P_in, t_step, VMR_cp(3,:), network)
     print*, 'radau5: ', VMR_cp(3,:), sum(VMR_cp(3,:))
     write(u(3),*) n, t_now, VMR_cp(3,:)
 
     ! Call dvode - bdf method
-    !call mini_ch_dvode(T_in, P_in, t_step, VMR_cp(4,:), network)
+    call mini_ch_dvode(T_in, P_in, t_step, VMR_cp(4,:), network)
     print*, 'dvode: ', VMR_cp(4,:), sum(VMR_cp(4,:))
     write(u(4),*) n, t_now, VMR_cp(4,:)
 
@@ -126,7 +126,7 @@ program mini_chem_main
     write(u(5),*) n, t_now, VMR_cp(5,:)
 
     ! Call Rosenbrock method
-    !call mini_ch_Rosenbrock(T_in, P_in, t_step, VMR_cp(6,:),  network)
+    call mini_ch_Rosenbrock(T_in, P_in, t_step, VMR_cp(6,:),  network)
     print*, 'Rosenbrock: ', VMR_cp(6,:), sum(VMR_cp(6,:))
     write(u(6),*) n, t_now, VMR_cp(6,:)
 
