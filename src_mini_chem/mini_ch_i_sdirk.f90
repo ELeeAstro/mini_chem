@@ -114,7 +114,7 @@ contains
 
     end do
 
-    VMR(:) = g_sp(:)%nd/sum(g_sp(:)%nd)
+    VMR(:) = g_sp(:)%nd/nd_atm
 
   end subroutine mini_ch_sdirk
 

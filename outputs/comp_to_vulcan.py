@@ -13,7 +13,7 @@ with open(filename, 'rb') as handle:
   print(mix_time_V)
 # sp the name of species, e.g., ‘H2O’
 
-integrator = ['seulex','rodas','radu5','dvode','dlsode','Rosenbrock']
+integrator = ['seulex','rodas','radau5','dvode','dlsode','Rosenbrock']
 sp = ['OH','H2','H2O','H','CO','CO2','O','CH4','C2H2','NH3','N2','HCN']
 
 nint = len(integrator)
@@ -31,7 +31,6 @@ for i in range(nint):
   plt.plot(time,VMR[:,ivmr],label=integrator[i])
 
 plt.legend(title=sp[isp])
-plt.ylim(
 
 plt.yscale('log')
 

@@ -17,7 +17,7 @@ F90LINKER =  gfortran
 FFLAGS  = -O3 -pipe $(LS_CONFIG)
 
 #Parallel flags
-#FFLAGS	= -O3 -pipe -fopenmp
+#FFLAGS	= -O3 -pipe -fopenmp $(LS_CONFIG)
 
 # for ifort Compiler
 #====================

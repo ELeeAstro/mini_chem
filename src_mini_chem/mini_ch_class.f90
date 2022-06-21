@@ -33,7 +33,7 @@ module mini_ch_class
   real(dp), parameter :: R = 8.31446261815324e7_dp
   real(dp), parameter :: P0 = 1.0e6_dp
 
-  real(dp), parameter :: f_con = 0.01_dp
+  real(dp), parameter :: f_con = 0.001_dp
   real(dp), parameter :: del_con = 0.01_dp
   real(dp), parameter :: eps_con = 1.0e-4_dp
 

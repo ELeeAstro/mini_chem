@@ -84,7 +84,7 @@ program mini_chem_main
   end do
 
 
-  integrator = (/'seulex    ','rodas     ','radu5     ','dvode     ','dlsode    ','Rosenbrock'/)
+  integrator = (/'seulex    ','rodas     ','radau5    ','dvode     ','dlsode    ','Rosenbrock'/)
   do n = 1, n_solver
     open(newunit=u(n),file='outputs/'//trim(integrator(n))//'.txt',action='readwrite')
     write(u(n),*) 'n', 'time', g_sp(:)%c

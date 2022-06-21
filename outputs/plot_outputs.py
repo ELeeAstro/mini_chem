@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib.pylab as plt
 
-integrator = ['seulex','rodas','radu5','dvode','dlsode','Rosenbrock']
+integrator = ['seulex','rodas','radau5','dvode','dlsode','Rosenbrock']
 sp = ['OH','H2','H2O','H','CO','CO2','O','CH4','C2H2','NH3','N2','HCN']
 
 nint = len(integrator)
