@@ -61,19 +61,18 @@ contains
 
     icntrl(1) = 0
     icntrl(2) = 0
-    icntrl(3) = 2
+    icntrl(3) = 1
     icntrl(4) = 0
 
     rcntrl(:) = 0.0_dp
 
-    ! rcntrl(1) = 0.0_dp
-    ! rcntrl(2) = t_end
-    ! rcntrl(3) = dt_init
-    ! rcntrl(4) = 0.2_dp
-    ! rcntrl(5) = 6.0_dp
-    ! rcntrl(6) = 0.1_dp
-    ! rcntrl(7) = 0.9_dp
-
+    rcntrl(1) = 0.0_dp
+    rcntrl(2) = 0.0_dp !t_end
+    rcntrl(3) = dt_init
+    rcntrl(4) = 0.2_dp
+    rcntrl(5) = 6.0_dp
+    rcntrl(6) = 0.1_dp
+    rcntrl(7) = 0.9_dp
 
     istatus(:) = 0
     rstatus(:) = 0.0_dp
@@ -104,15 +103,15 @@ contains
       end select
 
       t_now = rstatus(1)
-      rcntrl(3) = rstatus(2)
+      rcntrl(3) = rstatus(3)
 
-      if (t_now >= t_end*f_con) then
-        call check_con(n_sp,g_sp(:)%nd,y(:),t_now,t_old,con)
-        if (con .eqv. .True.) then
-          g_sp(:)%nd = y(:)
-          exit
-        end if
-      end if
+      ! if (t_now >= t_end*f_con) then
+      !   call check_con(n_sp,g_sp(:)%nd,y(:),t_now,t_old,con)
+      !   if (con .eqv. .True.) then
+      !     g_sp(:)%nd = y(:)
+      !     exit
+      !   end if
+      ! end if
 
       g_sp(:)%nd = y(:)
 
@@ -121,7 +120,7 @@ contains
 
     end do
 
-    VMR(:) = g_sp(:)%nd/nd_atm
+    VMR(:) = g_sp(:)%nd/sum(g_sp(:)%nd)
 
   end subroutine mini_ch_Rosenbrock
 

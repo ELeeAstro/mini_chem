@@ -20,7 +20,7 @@ contains
     real(dp) :: P_cgs
 
     ! Time controls
-    real(dp) :: t_begin, t_now, dt_init, t_old
+    real(dp) :: t_begin, t_now, dt_init, t_old, t_goal
     logical :: con = .False.
 
     ! seulex variables
@@ -52,10 +52,10 @@ contains
     itol = 0
     ijac = 1
     mljac = n_sp
-    mujac = 0
+    mujac = n_sp
     imas = 0
     mlmas = n_sp
-    mumas = 0
+    mumas = n_sp
     iout = 0
     idid = 0
 
@@ -95,9 +95,11 @@ contains
 
     t_begin = 0.0_dp
     t_now = t_begin
-    dt_init = 1.0e-99_dp
+    dt_init = 0.0_dp!1.0e-99_dp
 
     ncall = 1
+
+    t_goal = t_end * f_con
 
     do while((t_now < t_end))
 
@@ -108,21 +110,21 @@ contains
 
       select case(network)
       case('HO')
-        call SEULEX(n_sp,RHS_update,0,t_now,y,t_end,dt_init, &
+        call SEULEX(n_sp,RHS_update,1,t_now,y,t_end,dt_init, &
           &                  rtol,atol,itol, &
           &                  jac_HO,ijac,mljac,mujac, &
           &                  mas_dummy,imas,mlmas,mumas, &
           &                  solout,iout, &
           &                  rwork,lrwork,iwork,liwork,rpar,ipar,idid)
       case('CHO')
-        call SEULEX(n_sp,RHS_update,0,t_now,y,t_end,dt_init, &
+        call SEULEX(n_sp,RHS_update,1,t_now,y,t_end,dt_init, &
           &                  rtol,atol,itol, &
           &                  jac_CHO,ijac,mljac,mujac, &
           &                  mas_dummy,imas,mlmas,mumas, &
           &                  solout,iout, &
           &                  rwork,lrwork,iwork,liwork,rpar,ipar,idid)
       case('NCHO')
-        call SEULEX(n_sp,RHS_update,0,t_now,y,t_end,dt_init, &
+        call SEULEX(n_sp,RHS_update,1,t_now,y,t_end,dt_init, &
           &                  rtol,atol,itol, &
           &                  jac_NCHO,ijac,mljac,mujac, &
           &                  mas_dummy,imas,mlmas,mumas, &
@@ -133,12 +135,13 @@ contains
         stop
       end select
 
-      if (t_now >= t_end*f_con) then
+      if (t_now > t_goal) then
         call check_con(n_sp,g_sp(:)%nd,y(:),t_now,t_old,con)
         if (con .eqv. .True.) then
           g_sp(:)%nd = y(:)
           exit
         end if
+        t_goal = t_end
       end if
 
       g_sp(:)%nd = y(:)
@@ -147,7 +150,7 @@ contains
 
     end do
 
-    VMR(:) = g_sp(:)%nd/nd_atm
+    VMR(:) = g_sp(:)%nd/sum(g_sp(:)%nd)
 
     deallocate(rwork, iwork)
 

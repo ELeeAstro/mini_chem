@@ -156,7 +156,7 @@ contains
 
     end do
 
-    VMR(:) = g_sp(:)%nd/nd_atm
+    VMR(:) = g_sp(:)%nd/sum(g_sp(:)%nd)
 
     deallocate(rtol, atol, rwork, iwork)
 
