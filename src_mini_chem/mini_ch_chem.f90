@@ -13,87 +13,106 @@ contains
 
     real(dp), intent(in) :: T, P
 
-    integer :: i, iT, iT1, iP, iP1
+    integer :: i, iT1, iT2, iT3, iP1, iP2, iP3
     real(dp) :: k0, kinf
-    real(dp) :: Tr
-    real(dp) :: Tl, Tu, Pl, Pu, Tw, Pw
-    real(dp) :: k11, k12, k21, k22, kf
+    real(dp) :: lT, lP
+    real(dp) :: kf
+    real(dp), dimension(3) :: lPa, lTa, lkf, lkfa
 
     !! Calculate the forward and backward, and then net reaction rates for each reaction
     do i = 1, n_reac
 
-      Tr = T
-
-      ! if (T < re(i)%Tmin) then
-      !   Tr = re(i)%Tmin
-      ! else if (T > re(i)%Tmax) then
-      !   Tr = re(i)%Tmax
-      ! end if
-
       if (re(i)%re_t == 2) then
         ! Two body reaction
-        re(i)%f = re(i)%A * Tr**re(i)%B * exp(-re(i)%C/Tr)
+        re(i)%f = re(i)%A * T**re(i)%B * exp(-re(i)%C/T)
 
       else if (re(i)%re_t == 3) then
         ! Three body reaction
-        k0 = re(i)%A0 * Tr**re(i)%B0 * exp(-re(i)%C0/Tr)
-        kinf = re(i)%Ainf * Tr**re(i)%Binf * exp(-re(i)%Cinf/Tr)
+        k0 = re(i)%A0 * T**re(i)%B0 * exp(-re(i)%C0/T)
+        kinf = re(i)%Ainf * T**re(i)%Binf * exp(-re(i)%Cinf/T)
 
         re(i)%f = (k0 * nd_atm) / (1.0_dp + (k0 * nd_atm/kinf))
 
         !print*, i, k0, kinf
       else if (re(i)%re_t == 4) then
-        ! Interpolate from table to find net reaction forward rate
 
-        ! Find temperature index
-        Tw = Tr
-        call locate(re(i)%T(:), re(i)%nT , Tw, iT)
-        if (iT == 0) then
-          iT = 1
-          Tw = minval(re(i)%T(:))
-        else if (iT == re(i)%nT) then
-          iT = re(i)%nT-1
-          Tw = maxval(re(i)%T(:))
+        lT = log10(T)
+        lP = log10(P)
+
+        ! Interpolate using Bezier interpolation to find net reaction forward rate
+        ! from the tables
+
+        ! Find pressure index triplet
+        call locate(re(i)%P(:), re(i)%nP, P, iP2)
+        iP1 = iP2 - 1
+        iP3 = iP2 + 1
+
+        if (iP1 <= 0) then
+          iP1 = 1
+          iP2 = 2
+          iP3 = 3
+        else if (iP3 > re(i)%nP) then
+          iP1 = re(i)%nP - 2
+          iP2 = re(i)%nP - 1
+          iP3 = re(i)%nP
         end if
-        iT1 = iT + 1
 
-        Tl = re(i)%lT(iT)
-        Tu = re(i)%lT(iT1)
-        Tw = log10(Tw)
+        lPa(1) = re(i)%lP(iP1)
+        lPa(2) = re(i)%lP(iP2)
+        lPa(3) = re(i)%lP(iP3)
 
-        ! Find pressure index
-        Pw = P
-        call locate(re(i)%P(:), re(i)%nP , Pw, iP)
-        if (iP == 0) then
-          iP = 1
-          Pw = minval(re(i)%P(:))
-        else if (iP == re(i)%nP) then
-          iP = re(i)%nP-1
-          Pw = maxval(re(i)%P(:))
+        ! Check if input temperature is within table range
+        if (T <= re(i)%T(1)) then
+
+          ! Perform Bezier interpolation at minimum table temperature
+          lkf(1) = re(i)%lkf(1,iP1)
+          lkf(2) = re(i)%lkf(1,iP2)
+          lkf(3) = re(i)%lkf(1,iP3)
+          call Bezier_interp(lPa(:), lkf(:), 3, lP, kf)
+          kf = 10.0_dp**kf
+
+        else if (T >= re(i)%T(re(i)%nT)) then
+
+          ! Perform Bezier interpolation at maximum table temperature
+          lkf(1) = re(i)%lkf(re(i)%nT,iP1)
+          lkf(2) = re(i)%lkf(re(i)%nT,iP2)
+          lkf(3) = re(i)%lkf(re(i)%nT,iP3)
+          call Bezier_interp(lPa(:), lkf(:), 3, lP, kf)
+          kf = 10.0_dp**kf
+
+        else
+
+          ! Pressure and temperature is within table grid
+          ! Perform 2D Bezier interpolation by performing interpolation 4 times
+
+          ! Find temperature index triplet
+          call locate(re(i)%T(:), re(i)%nT, T, iT2)
+          iT1 = iT2 - 1
+          iT3 = iT2 + 1
+
+          lkf(1) = re(i)%lkf(iT1,iP1)
+          lkf(2) = re(i)%lkf(iT1,iP2)
+          lkf(3) = re(i)%lkf(iT1,iP3)
+          call Bezier_interp(lPa(:), lkf(:), 3, lP, lkfa(1)) ! Result at T1, P_in
+          lkf(1) = re(i)%lkf(iT2,iP1)
+          lkf(2) = re(i)%lkf(iT2,iP2)
+          lkf(3) = re(i)%lkf(iT2,iP3)
+          call Bezier_interp(lPa(:), lkf(:), 3, lP, lkfa(2)) ! Result at T2, P_in
+          lkf(1) = re(i)%lkf(iT3,iP1)
+          lkf(2) = re(i)%lkf(iT3,iP2)
+          lkf(3) = re(i)%lkf(iT3,iP3)
+          call Bezier_interp(lPa(:), lkf(:), 3, lP, lkfa(3)) ! Result at T3, P_in
+          lTa(1) = re(i)%lT(iT1)
+          lTa(2) = re(i)%lT(iT2)
+          lTa(3) = re(i)%lT(iT3)
+          call Bezier_interp(lTa(:), lkfa(:), 3, lT, kf) ! Result at T, P
+          kf = 10.0_dp**kf
+
+          ! print*, i, kf
+
         end if
-        iP1 = iP + 1
 
-        Pl = re(i)%lP(iP)
-        Pu = re(i)%lP(iP1)
-        Pw = log10(Pw)
-
-        ! Bi-linearly interpolate from table to find kf
-        k11 = re(i)%lkf(iT,iP)
-        k12 = re(i)%lkf(iT,iP1)
-        k21 = re(i)%lkf(iT1,iP)
-        k22 = re(i)%lkf(iT1,iP1)
-
-       call bilinear_interp(Tw, Pw, Tl, Tu, Pl, Pu, k11, k21, k12, k22, kf)
-       kf = 10.0_dp**kf
-       !call bilinear_log_interp(Tw, Pw, Tl, Tu, Pl, Pu, k11, k21, k12, k22, kf)
-
-
-       ! print*, i
-       ! print*, Tl, Tu
-       ! print*, Pl, Pu
-       ! print*, k11, k12, k21, k22, kf
-
-       re(i)%f = kf
+        re(i)%f = kf
 
       end if
 
