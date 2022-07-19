@@ -12,7 +12,7 @@ Lee et al. (202X) - A Mini-Chemical Scheme with Net Reactions for 3D GCMs IB.: 3
 
 This repository contains the standalone version of mini-chem, containing the source code and testing modules for users to use for their own purposes.
 
-The branch 'multi_threading' contains the threadsafe code, suitable for GCM modelling. We recommend using the source files from this branch as the production methods inside the GCM model.
+The branch 'multi_threading' contains the threadsafe code, suitable for GCM modelling that make use of OpenMP. We recommend using the source files from this branch as the production methods inside the GCM model, with or without OpenMP.
 
 ## mini_chem.nml
 
@@ -55,11 +55,11 @@ Contains python code to produce contour plots of the net forward reaction rate t
 
 Original VULCAN formatted data for each kinetic network net reaction tables - typically reformatted using the python script
 
-## outputs
+### outputs
 
 Where the output from running the code is produced, also contains some benchmarking data from VULCAN
 
-### Future updates
+## Future updates
 
 We will be adding photochemical effects in the next projects. \
 Add Bezier interpolation to net rate table interpolation for multi_threading. \
