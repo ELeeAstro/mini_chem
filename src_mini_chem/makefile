@@ -27,7 +27,7 @@ FFLAGS  = -O3 -pipe $(LS_CONFIG)
 
 #FFLAGS   = -O0 -g -traceback -fpp -prec-div -fp-model source -fpe0 -ipo
 #FFLAGS    = -O0 -g -traceback -xHost -fpp -fp-model source -qopenmp -ipo
-#FFLAGS    = -O3 -xHost -qopenmp -fpp -fp-model source -ipo
+#FFLAGS    = -O3 -qopenmp -fpp -fp-model source -ipo
 
 #====================
 
