@@ -7,25 +7,25 @@ import seaborn as sns
 plt.rc('text', usetex=False)
 plt.rc('font', family='serif')
 
-path = '../netrate_tables/'
+path = '../chem_data/'
 
-fname = 'solar-CH4-C2H2.txt'
-title = r'CH$_{4}$ + CH$_{4}$ $\rightarrow$ C$_{2}$H$_{2}$ + 3H$_{2}$'
+#fname = 'solar-CH4-C2H2.txt'
+#title = r'CH$_{4}$ + CH$_{4}$ $\rightarrow$ C$_{2}$H$_{2}$ + 3H$_{2}$'
 
-# fname = path+'solar-CH4-CO.txt'
-# title = r'CH$_{4}$ + H$_{2}$O $\rightarrow$ CO + 3H$_{2}$'
+#fname = path+'solar-CH4-CO.txt'
+#title = r'CH$_{4}$ + H$_{2}$O $\rightarrow$ CO + 3H$_{2}$'
 
-# fname = path+'solar-CH4-HCN.txt'
-# title = r'CH$_{4}$ + NH$_{3}$ $\rightarrow$ HCN + 3H$_{2}$'
+#fname = path+'solar-CH4-HCN.txt'
+#title = r'CH$_{4}$ + NH$_{3}$ $\rightarrow$ HCN + 3H$_{2}$'
 
-# fname = path+'solar-CO-CH4-C2H2.txt'
-# title = r'CO + CH$_{4}$  $\rightarrow$ C$_{2}$H$_{2}$ + H$_{2}$O'
+#fname = path+'solar-CO-CH4-C2H2.txt'
+#title = r'CO + CH$_{4}$  $\rightarrow$ C$_{2}$H$_{2}$ + H$_{2}$O'
 
-# fname = path+'solar-CO-HCN.txt'
-# title = r'CO + NH$_{3}$ $\rightarrow$ HCN + H$_{2}$O'
+#fname = path+'solar-CO-HCN.txt'
+#title = r'CO + NH$_{3}$ $\rightarrow$ HCN + H$_{2}$O'
 
-# fname = path+'solar-NH3-N2.txt'
-# title = r'NH$_{3}$ + NH$_{3}$ $\rightarrow$ N$_{2}$ + 3H$_{2}$'
+fname = path+'solar-NH3-N2.txt'
+title = r'NH$_{3}$ + NH$_{3}$ $\rightarrow$ N$_{2}$ + 3H$_{2}$'
 
 T = np.loadtxt(path+fname,max_rows=1,skiprows=3)
 p = np.loadtxt(path+fname,max_rows=1,skiprows=5)
@@ -58,15 +58,15 @@ for c in CS.collections:
 CB = plt.colorbar(CS, format=fmt)
 CB.solids.set_rasterized(True)
 
-xticks = [500,1000,1500,2000,2500,3000,3500]
-xticks_lab = ['500','1000','1500','2000','2500','3000','3500']
-plt.xlim(300,3500)
+xticks = [500,1000,1500,2000,2500,3000,3450]
+xticks_lab = ['500','1000','1500','2000','2500','3000','3450']
+plt.xlim(300,3451)
 plt.xticks(xticks,xticks_lab)
 
 plt.yscale('log')
-yticks = [1000,100,10,1,0.1,0.01,1e-3,1e-4,1e-5,1e-6]#,1e-7,1e-8]
-yticks_lab = ['1000','100','10','1','0.1','0.01','10$^{-3}$','10$^{-4}$','10$^{-5}$','10$^{-6}$']#,'10$^{-7}$','10$^{-8}$']
-plt.ylim(1000,1e-6)
+yticks = [1000,100,10,1,0.1,0.01,1e-3,1e-4,1e-5,1e-6,1e-7,1e-8]
+yticks_lab = ['1000','100','10','1','0.1','0.01','10$^{-3}$','10$^{-4}$','10$^{-5}$','10$^{-6}$','10$^{-7}$','10$^{-8}$']
+plt.ylim(1000,1e-8)
 plt.yticks(yticks,yticks_lab)
 
 #plt.gca().invert_yaxis()
