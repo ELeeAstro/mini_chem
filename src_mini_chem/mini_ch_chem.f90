@@ -1,3 +1,8 @@
+!!!
+! Elspeth KH Lee - Jul 2022 : Initial version
+! Calculates the forward and backward reaction rates, interpolates from net tables using Bezier interpolation
+!!!
+
 module mini_ch_chem
   use mini_ch_precision
   use mini_ch_class
@@ -123,7 +128,6 @@ contains
 
     end do
 
-
   end subroutine reaction_rates
 
   subroutine reverse_reactions(T, P)
@@ -190,7 +194,6 @@ contains
       !print*, i, re(i)%dH, re(i)%ds, re(i)%Keq
 
     end do
-
 
   end subroutine reverse_reactions
 

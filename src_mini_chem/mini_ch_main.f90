@@ -18,12 +18,12 @@ program mini_chem_main
   integer, parameter :: n_solver = 6
   real(dp), allocatable, dimension(:) :: VMR, VMR_IC, nd_out
   real(dp), allocatable, dimension(:,:) :: VMR_cp
-  character(len=200) :: data_file, sp_file, network
+  character(len=200) :: data_file, sp_file, network, net_dir, met
 
   integer, dimension(n_solver) :: u
   character(len=200), dimension(n_solver) :: integrator
 
-  namelist /mini_chem/ T_in, P_in, t_step, n_step, n_sp, data_file, sp_file, network
+  namelist /mini_chem/ T_in, P_in, t_step, n_step, n_sp, data_file, sp_file, network, net_dir, met
   namelist /mini_chem_VMR/ VMR
 
   ! Input Temperature [K], pressure [Pa] and stepping variables
@@ -70,7 +70,7 @@ program mini_chem_main
   t_now = 0.0_dp
 
   ! Read the reaction and species list
-  call read_react_list(data_file, sp_file)
+  call read_react_list(data_file, sp_file, net_dir, met)
 
   ! Subroutine that can produce IC for the VMR (ggCHEM etc) - NOT USED
   !call CE_IC()
