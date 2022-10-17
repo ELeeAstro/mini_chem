@@ -12,7 +12,7 @@ Lee et al. (202X) - A Mini-Chemical Scheme with Net Reactions for 3D GCMs IB.: 3
 
 This repository contains the standalone version of mini-chem, containing the source code and testing modules for users to use for their own purposes.
 
-The branch 'multi_threading' contains the threadsafe code, suitable for GCM modelling that make use of OpenMP. We recommend using the source files from this branch as the production methods inside the GCM model, with or without OpenMP.
+The src_mini_chem_mp directory contains threadsafe code, suitable for GCM modelling that make use of OpenMP. We recommend using the source files from this branch as the production methods inside the GCM model, with or without OpenMP.
 
 ## mini_chem.nml
 
@@ -27,6 +27,8 @@ The namelist that describes the simulation set up:
 4. n_step - number of steps
 5. data_file - path to _data file
 6. sp_file - path to _sp file
+7. net_dir - path to net reaction files
+8. met - metallicity of net reaction tables
 
 ### mini_chem_VMR
 
@@ -39,13 +41,17 @@ The namelist that describes the simulation set up:
 
 Contains the fortran source files and makefile for compiling this standalone version
 
+### src_mini_chem_mp
+
+Contains the OpenMP fortran source files and makefile for compiling this standalone version
+
 ### chem_data
 
-Mini-chem formatted data files for each network _sp contains the species data, _data contains the reaction network, solar- contains the netrate tables in mini-chem format
+Mini-chem formatted data files for each network _sp contains the species data, _data contains the reaction network, 1x, 10x directories etc- contains the netrate tables in mini-chem format for that metallicity and C/O ratio
 
 ### jacobian_conversion
 
-A workspace for converting the Jacobian from VULCAN to FORTRAN - typically is required to be done manually
+A workspace for converting the Jacobian from VULCAN to a FORTRAN format - typically is required to be done manually
 
 ### netrate_contour_plots
 
@@ -53,13 +59,12 @@ Contains python code to produce contour plots of the net forward reaction rate t
 
 ### netrate_originals
 
-Original VULCAN formatted data for each kinetic network net reaction tables - typically reformatted using the python script
+Original VULCAN formatted data for each kinetic network net reaction tables for different metallicity and C/O ratio - typically reformatted using the provided python script
 
-### outputs
+### outputs and mp_outputs
 
 Where the output from running the code is produced, also contains some benchmarking data from VULCAN
 
 ## Future updates
 
-We will be adding photochemical effects in the next projects. \
-Add Bezier interpolation to net rate table interpolation for multi_threading. \
+We will be adding photochemical and haze formation effects in the next projects.
