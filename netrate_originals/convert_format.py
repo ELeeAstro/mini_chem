@@ -1,7 +1,7 @@
 import numpy as np
 
 dire = 'Tsai2022_net_rates/solar_lodders2019/'
-sol = ''
+sol = '100x'
 
 netrat = ['CH4-C2H2','CH4-CO','CH4-HCN','CO-CH4-C2H2','CO-HCN','NH3-N2']
 lnet = len(netrat)

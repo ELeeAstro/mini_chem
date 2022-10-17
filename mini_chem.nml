@@ -1,5 +1,7 @@
 &mini_chem
 
+!network = 'OH'
+!network = 'CHO'
 network = 'NCHO'
 
 T_in = 1500.0

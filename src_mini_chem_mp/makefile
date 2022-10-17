@@ -1,11 +1,6 @@
 # for gfortran Compiler
 #===================
 
-
-LS_CONFIG  =  -DFULL_ALGEBRA
-BLAS=/Users/gl20y334/lapack-3.10.1/librefblas.a
-LAPACK=/Users/gl20y334/lapack-3.10.1/liblapack.a
-
 F90 = gfortran
 F90LINKER =  gfortran
 
@@ -18,8 +13,8 @@ F90LINKER =  gfortran
 
 #Parallel flags
 
-#FFLAGS	= -O0 -g -fbacktrace -pipe -fopenmp #$(LS_CONFIG)
-FFLAGS	= -O3 -pipe -fopenmp #$(LS_CONFIG)
+#FFLAGS	= -O0 -g -fbacktrace -pipe -fopenmp
+FFLAGS	= -O3 -pipe -fopenmp
 
 
 # for ifort Compiler
@@ -54,24 +49,14 @@ mini_ch_i_radau5.o \
 mini_ch_main.o
 
 
-# mini_ch_i_radau5.o \
-# mini_ch_i_dvode.o \
-# mini_ch_i_dlsode.o \
-# mini_ch_i_Rosenbrock.o
-# mini_ch_i_sdirk.o \
-# lapack.o \
-# lapackc.o \
-# dlamch.o \
-
-
 # executable statement
-EXECS  = ../mini_chem
+EXECS  = ../mini_chem_mp
 
 .SUFFIXES : .o .f90 .f .F90
 
-default: mini_chem
+default: mini_chem_mp
 
-mini_chem: $(OBJECTS)
+mini_chem_mp: $(OBJECTS)
 	$(F90LINKER) $(LFLAGS) $(OBJECTS) -o $(EXECS)
 #$(LAPACK) $(BLAS)
 

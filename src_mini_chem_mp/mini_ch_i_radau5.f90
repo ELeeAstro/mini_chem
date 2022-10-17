@@ -7,6 +7,8 @@ module mini_ch_i_radau5
   public ::  mini_ch_radau5, RHS_update, jac_dummy, mas_dummy, solout, &
   & jac_HO, jac_CHO, jac_NCHO
 
+  real(dp) :: nd_atm
+
 contains
 
   subroutine mini_ch_radau5(T_in, P_in, t_end, VMR, network)
@@ -17,7 +19,7 @@ contains
     character(len=200), intent(in) :: network
 
     integer :: ncall
-    real(dp) :: P_cgs, nd_atm
+    real(dp) :: P_cgs
 
     ! Time controls
     real(dp) :: t_begin, t_now, dt_init, t_old, t_goal
@@ -147,7 +149,7 @@ contains
 
     end do
 
-    VMR(:) = y(:)/sum(y(:))
+    VMR(:) = y(:)/nd_atm
 
     deallocate(rwork, iwork, Keq, re_r, re_f)
 
@@ -164,12 +166,10 @@ contains
     integer, intent(inout) :: ipar
 
     integer :: i, j, k
-    real(dp) :: msum, msum2, frate, rrate, nd_atm
+    real(dp) :: msum, msum2, frate, rrate
 
     ! Calculate the rate of change of number density for all species [cm-3/s]
     ! this is the f vector
-
-    nd_atm = sum(y(:))
 
     ! Loop through reactions add rates to the f array
     f(:) = 0.0_dp
@@ -212,9 +212,6 @@ contains
     real(dp), intent(in) :: X, RPAR
     real(dp), dimension(N), intent(in) :: Y
     real(dp), dimension(LDFY, N),intent(out) :: DFY
-    real(dp) :: nd_atm
-
-    nd_atm = sum(y(:))
 
     dfy(1,1) = -re_f(1)*y(2) - re_f(2)*y(5) - re_r(3)*y(4)
     dfy(1,2) = -re_f(1)*y(1) + re_f(3)*y(7)
@@ -373,9 +370,6 @@ contains
     real(dp), intent(in) :: X, RPAR
     real(dp), dimension(N), intent(in) :: Y
     real(dp), dimension(LDFY, N),intent(out) :: DFY
-    real(dp) :: nd_atm
-
-    nd_atm = sum(y(:))
 
     ! Update current number density of all species from y vector
     g_sp(:)%nd = y(:)
@@ -471,9 +465,6 @@ contains
     real(dp), intent(in) :: X, RPAR
     real(dp), dimension(N), intent(in) :: Y
     real(dp), dimension(LDFY, N),intent(out) :: DFY
-    real(dp) :: nd_atm
-
-    nd_atm = sum(y(:))
 
     dfy(1, 1) = -re_f(1)*y(2) - re_r(2)*y(4)
     dfy(1, 2) = -re_f(1)*y(1) + re_f(2)*y(5)
