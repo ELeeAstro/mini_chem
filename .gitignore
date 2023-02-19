@@ -32,3 +32,6 @@
 *.exe
 *.out
 *.app
+
+#outputs in directories
+outputs*/*.txt
