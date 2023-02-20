@@ -1,4 +1,4 @@
-module mini_ch_i_dvode
+module mini_ch_i_dlsode
   use mini_ch_precision
   use mini_ch_class
   use mini_ch_chem
@@ -6,12 +6,12 @@ module mini_ch_i_dvode
 
   logical, parameter :: use_stiff = .True.
 
-  public ::  mini_ch_dvode, RHS_update, jac_dummy, &
+  public ::  mini_ch_dlsode, RHS_update, jac_dummy, &
   & jac_HO, jac_CHO, jac_NCHO
 
 contains
 
-  subroutine mini_ch_dvode(T, P, t_end, VMR, network)
+  subroutine mini_ch_dlsode(T, P, t_end, VMR, network)
     implicit none
 
     real(dp), intent(in) :: T, P, t_end
@@ -31,8 +31,6 @@ contains
     integer, allocatable, dimension(:) :: iwork
     integer :: itol, itask, istate, iopt, mf
     integer :: rworkdim, iworkdim
-    real(dp) :: rpar
-    integer :: ipar
 
     !! Find the number density of the atmosphere
     P_cgs = P * 10.0_dp   ! Convert pascal to dyne cm-2
@@ -59,8 +57,8 @@ contains
       ! Problem is stiff (usual)
       ! mf = 21 - full jacobian matrix with jacobian save
       mf = 21
-      rworkdim = 22 +  9*n_sp + 2*n_sp**2
-      iworkdim = 30 + n_sp
+      rworkdim = 22 +  9*n_sp + n_sp**2
+      iworkdim = 20 + n_sp
       allocate(rtol(n_sp), atol(n_sp), rwork(rworkdim), iwork(iworkdim))
 
       itol = 4
@@ -102,9 +100,6 @@ contains
     t_begin = 0.0_dp
     t_now = t_begin
 
-    rpar = 0.0_dp
-    ipar = 0
-
     ! Set the printing flag
     ! 0 = no printing, 1 = printing
     call xsetf(1)
@@ -120,14 +115,14 @@ contains
 
       select case(network)
       case('HO')
-        call DVODE (RHS_update, n_sp, y, t_now, t_end, itol, rtol, atol, itask, &
-        & istate, iopt, rwork, rworkdim, iwork, iworkdim, jac_HO, mf, rpar, ipar)
+        call DLSODE (RHS_update, n_sp, y, t_now, t_end, itol, rtol, atol, itask, &
+        & istate, iopt, rwork, rworkdim, iwork, iworkdim, jac_HO, mf)
       case('CHO')
-        call DVODE (RHS_update, n_sp, y, t_now, t_end, itol, rtol, atol, itask, &
-        & istate, iopt, rwork, rworkdim, iwork, iworkdim, jac_CHO, mf, rpar, ipar)
+        call DLSODE (RHS_update, n_sp, y, t_now, t_end, itol, rtol, atol, itask, &
+        & istate, iopt, rwork, rworkdim, iwork, iworkdim, jac_CHO, mf)
       case('NCHO')
-        call DVODE (RHS_update, n_sp, y, t_now, t_end, itol, rtol, atol, itask, &
-        & istate, iopt, rwork, rworkdim, iwork, iworkdim, jac_NCHO, mf, rpar, ipar)
+        call DLSODE (RHS_update, n_sp, y, t_now, t_end, itol, rtol, atol, itask, &
+        & istate, iopt, rwork, rworkdim, iwork, iworkdim, jac_NCHO, mf)
       case default
         print*, 'Invalid network provided: ', trim(network)
         stop
@@ -160,17 +155,15 @@ contains
 
     deallocate(rtol, atol, rwork, iwork)
 
-  end subroutine mini_ch_dvode
+  end subroutine mini_ch_dlsode
 
-  subroutine RHS_update(NEQ, time, y, f, rpar, ipar)
+  subroutine RHS_update(NEQ, time, y, f)
     implicit none
 
     integer, intent(in) ::  NEQ
     real(dp), intent(inout) :: time
     real(dp), dimension(NEQ), intent(inout) :: y
     real(dp), dimension(NEQ), intent(inout) :: f
-    real(dp), intent(inout) :: rpar
-    integer, intent(inout) :: ipar
 
     integer :: i, j, k
     real(dp) :: msum, msum2, frate, rrate
@@ -221,13 +214,11 @@ contains
 
   end subroutine RHS_update
 
-  subroutine jac_dummy (NEQ, X, Y, ML, MU, PD, NROWPD, RPAR, IPAR)
+  subroutine jac_dummy (NEQ, X, Y, ML, MU, PD, NROWPD)
     integer, intent(in) :: NEQ, ML, MU, NROWPD
     real(dp), intent(in) :: X
     real(dp), dimension(NEQ), intent(in) :: Y
     real(dp), dimension(NROWPD, NEQ), intent(inout) :: PD
-    real(dp), intent(in) :: RPAR
-    integer, intent(in) :: IPAR
   end subroutine jac_dummy
 
   subroutine jac_NCHO(N, X, Y, ML, MU, DFY, NROWPD)
@@ -393,10 +384,10 @@ contains
 
   end subroutine jac_NCHO
 
-  subroutine jac_CHO(N, X, Y, ML, MU, DFY, NROWPD, RPAR, IPAR)
+  subroutine jac_CHO(N, X, Y, ML, MU, DFY, NROWPD)
     implicit none
-    integer, intent(in) :: N, ML, MU, NROWPD, ipar
-    real(dp), intent(in) :: X, RPAR
+    integer, intent(in) :: N, ML, MU, NROWPD
+    real(dp), intent(in) :: X
     real(dp), dimension(N), intent(in) :: Y
     real(dp), dimension(NROWPD, N), intent(out) :: DFY
 
@@ -493,10 +484,10 @@ contains
 
   end subroutine jac_CHO
 
-  subroutine jac_HO(N, X, Y, ML, MU, DFY, NROWPD, RPAR, IPAR)
+  subroutine jac_HO(N, X, Y, ML, MU, DFY, NROWPD)
     implicit none
-    integer, intent(in) :: N, ML, MU, NROWPD, ipar
-    real(dp), intent(in) :: X, RPAR
+    integer, intent(in) :: N, ML, MU, NROWPD
+    real(dp), intent(in) :: X
     real(dp), dimension(N), intent(in) :: Y
     real(dp), dimension(NROWPD, N), intent(out) :: DFY
 
@@ -536,4 +527,4 @@ contains
 
   end subroutine jac_HO
 
-end module mini_ch_i_dvode
+end module mini_ch_i_dlsode
