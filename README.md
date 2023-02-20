@@ -51,6 +51,10 @@ Contains the OpenMP fortran source files and makefile for compiling this standal
 
 Contains testing code the dvode solver 
 
+### src_mini_chem_dlsode
+
+Contains testing code the dlsode solver
+
 ### chem_data
 
 Mini-chem formatted data files for each network _sp contains the species data, _data contains the reaction network, 1x, 10x directories etc- contains the netrate tables in mini-chem format for that metallicity and C/O ratio
