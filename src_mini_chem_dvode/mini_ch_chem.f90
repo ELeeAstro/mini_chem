@@ -1,22 +1,16 @@
-!!!
-! Elspeth KH Lee - Jul 2022 : Initial version
-! Calculates the forward and backward reaction rates, interpolates from net tables using Bezier interpolation
-!!!
-
 module mini_ch_chem
   use mini_ch_precision
   use mini_ch_class
   implicit none
 
-
-public :: reaction_rates, reverse_reactions, check_con
+  public :: reaction_rates, reverse_reactions, check_con
 
 contains
 
-  subroutine reaction_rates(T, P)
+  subroutine reaction_rates(T, P, nd_atm)
     implicit none
 
-    real(dp), intent(in) :: T, P
+    real(dp), intent(in) :: T, P, nd_atm
 
     integer :: i, iT1, iT2, iT3, iP1, iP2, iP3
     real(dp) :: k0, kinf
@@ -29,14 +23,14 @@ contains
 
       if (re(i)%re_t == 2) then
         ! Two body reaction
-        re(i)%f = re(i)%A * T**re(i)%B * exp(-re(i)%C/T)
+        re_f(i) = re(i)%A * T**re(i)%B * exp(-re(i)%C/T)
 
       else if (re(i)%re_t == 3) then
         ! Three body reaction
         k0 = re(i)%A0 * T**re(i)%B0 * exp(-re(i)%C0/T)
         kinf = re(i)%Ainf * T**re(i)%Binf * exp(-re(i)%Cinf/T)
 
-        re(i)%f = (k0 * nd_atm) / (1.0_dp + (k0 * nd_atm/kinf))
+        re_f(i) = (k0 * nd_atm) / (1.0_dp + (k0 * nd_atm/kinf))
 
         !print*, i, k0, kinf
       else if (re(i)%re_t == 4) then
@@ -117,14 +111,11 @@ contains
 
         end if
 
-        re(i)%f = kf
+        re_f(i) = kf
 
       end if
 
-      re(i)%r = re(i)%f/re(i)%Keq
-      re(i)%net = re(i)%f - re(i)%r
-
-      !print*, i, T, re(i)%f, re(i)%r, re(i)%net
+      re_r(i) = re_f(i)/Keq(i)
 
     end do
 
@@ -137,14 +128,10 @@ contains
 
     integer :: i, j
     real(dp) :: Tn2, Tn1, lnT, T2, T3, T4, Tr
+    real(dp), dimension(n_sp) :: H0, s0
+    real(dp), dimension(n_reac) :: dH, ds
 
     Tr = T
-
-    ! if (T < 200.0_dp) then
-    !   Tr = 200.0_dp
-    ! else if (T > 6000.0_dp) then
-    !   Tr = 6000.0_dp
-    ! end if
 
     Tn2 = 1.0_dp/Tr**2
     Tn1 = 1.0_dp/Tr
@@ -156,47 +143,44 @@ contains
     !! First calculate H0 and s0 from the polynomials
     do i = 1, n_sp
       if (Tr <= 1000.0_dp) then
-        g_sp(i)%H0 = -g_sp(i)%a_l(1)*Tn2 + g_sp(i)%a_l(2)*lnT*Tn1 + g_sp(i)%a_l(3) &
+        H0(i) = -g_sp(i)%a_l(1)*Tn2 + g_sp(i)%a_l(2)*lnT*Tn1 + g_sp(i)%a_l(3) &
           & + g_sp(i)%a_l(4)*Tr/2.0_dp + g_sp(i)%a_l(5)*T2/3.0_dp + g_sp(i)%a_l(6)*T3/4.0_dp &
           & + g_sp(i)%a_l(7)*T4/5.0_dp + g_sp(i)%a_l(8)*Tn1
-        g_sp(i)%s0 = -g_sp(i)%a_l(1)*Tn2/2.0_dp - g_sp(i)%a_l(2)*Tn1 + g_sp(i)%a_l(3)*lnT &
+        s0(i) = -g_sp(i)%a_l(1)*Tn2/2.0_dp - g_sp(i)%a_l(2)*Tn1 + g_sp(i)%a_l(3)*lnT &
           & + g_sp(i)%a_l(4)*Tr + g_sp(i)%a_l(5)*T2/2.0_dp + g_sp(i)%a_l(6)*T3/3.0_dp &
           & + g_sp(i)%a_l(7)*T4/4.0_dp + g_sp(i)%a_l(9)
       else
-        g_sp(i)%H0 = -g_sp(i)%a_h(1)*Tn2 + g_sp(i)%a_h(2)*lnT*Tn1 + g_sp(i)%a_h(3) &
+        H0(i) = -g_sp(i)%a_h(1)*Tn2 + g_sp(i)%a_h(2)*lnT*Tn1 + g_sp(i)%a_h(3) &
           & + g_sp(i)%a_h(4)*Tr/2.0_dp + g_sp(i)%a_h(5)*T2/3.0_dp + g_sp(i)%a_h(6)*T3/4.0_dp &
           & + g_sp(i)%a_h(7)*T4/5.0_dp + g_sp(i)%a_h(8)*Tn1
-        g_sp(i)%s0 = -g_sp(i)%a_h(1)*Tn2/2.0_dp - g_sp(i)%a_h(2)*Tn1 + g_sp(i)%a_h(3)*lnT &
+        s0(i) = -g_sp(i)%a_h(1)*Tn2/2.0_dp - g_sp(i)%a_h(2)*Tn1 + g_sp(i)%a_h(3)*lnT &
           & + g_sp(i)%a_h(4)*Tr + g_sp(i)%a_h(5)*T2/2.0_dp + g_sp(i)%a_h(6)*T3/3.0_dp &
           & + g_sp(i)%a_h(7)*T4/4.0_dp + g_sp(i)%a_h(9)
       end if
 
-      g_sp(i)%H0 = g_sp(i)%H0 * R*Tr
-      g_sp(i)%s0 = g_sp(i)%s0 * R
+      H0(i) = H0(i) * R*Tr
+      s0(i) = s0(i) * R
 
     end do
 
     !! Second calculate the reverse reaction coefficent
-    re(:)%dH = 0.0_dp
-    re(:)%ds = 0.0_dp
+    dH(:) = 0.0_dp
+    ds(:) = 0.0_dp
     do i = 1, n_reac
-      do j = 1, re(i)%n_pr
-        re(i)%dH = re(i)%dH + g_sp(re(i)%gi_pr(j))%H0
-        re(i)%ds = re(i)%ds + g_sp(re(i)%gi_pr(j))%s0
-      end do
       do j = 1, re(i)%n_re
-        re(i)%dH = re(i)%dH - g_sp(re(i)%gi_re(j))%H0
-        re(i)%ds = re(i)%ds - g_sp(re(i)%gi_re(j))%s0
+        dH(i) = dH(i) - H0(re(i)%gi_re(j))
+        ds(i) = ds(i) - s0(re(i)%gi_re(j))
+      end do
+      do j = 1, re(i)%n_pr
+        dH(i) = dH(i) + H0(re(i)%gi_pr(j))
+        ds(i) = ds(i) + s0(re(i)%gi_pr(j))
       end do
 
-      re(i)%Keq = exp(-(re(i)%dH - Tr*re(i)%ds)/(R*Tr)) * ((kb * Tr)/P0)**(-re(i)%dmu)
-
-      !print*, i, re(i)%dH, re(i)%ds, re(i)%Keq
+      Keq(i) = exp(-(dH(i) - Tr*ds(i))/(R*Tr)) * ((kb * Tr)/P0)**(-re(i)%dmu)
 
     end do
 
   end subroutine reverse_reactions
-
 
   subroutine check_con(n_sp, n_kp, n_k, t_now, t_old, con)
     implicit none

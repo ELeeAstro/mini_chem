@@ -9,10 +9,10 @@ F90LINKER =  gfortran
 #FFLAGS	= -Og -pipe -Wall -Wextra -g -fbacktrace
 
 #Serial flags
-FFLAGS  = -O3 -pipe
+#FFLAGS  = -O3 -pipe
 
 #Parallel flags
-#FFLAGS	= -O3 -pipe -fopenmp 
+FFLAGS	= -O3 -pipe -fopenmp 
 
 # for ifort Compiler
 #====================

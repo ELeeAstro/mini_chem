@@ -46,9 +46,6 @@ program mini_chem_main
   ! Read the reaction and species list
   call read_react_list(data_file, sp_file, net_dir, met)
 
-  ! Subroutine that can produce IC for the VMR (ggCHEM etc) - NOT USED
-  !call CE_IC()
-
   print*, 'integrator: ', g_sp(:)%c, 'VMR sum'
   print*, 'IC: ', VMR_IC(:), sum(VMR_IC(:))
 

@@ -1162,7 +1162,7 @@ C-----------------------------------------------------------------------
      6                N, NEWH, NEWQ, NHNIL, NQ, NQNYH, NQWAIT, NSLJ,
      7                NSLP, NYH
       COMMON /DVOD02/ HU, NCFN, NETF, NFE, NJE, NLU, NNI, NQU, NST
-C
+C$omp threadprivate(/DVOD01/,/DVOD02/)
       DATA  MORD(1) /12/, MORD(2) /5/, MXSTP0 /500/, MXHNL0 /10/
       DATA ZERO /0.0D0/, ONE /1.0D0/, TWO /2.0D0/, FOUR /4.0D0/,
      1     PT2 /0.2D0/, HUN /100.0D0/
@@ -1878,7 +1878,7 @@ C
      6                N, NEWH, NEWQ, NHNIL, NQ, NQNYH, NQWAIT, NSLJ,
      7                NSLP, NYH
       COMMON /DVOD02/ HU, NCFN, NETF, NFE, NJE, NLU, NNI, NQU, NST
-C
+C$omp threadprivate(/DVOD01/,/DVOD02/)
       DATA HUN /100.0D0/, ZERO /0.0D0/
 C
       IFLAG = 0
@@ -2038,7 +2038,7 @@ C-----------------------------------------------------------------------
      6                N, NEWH, NEWQ, NHNIL, NQ, NQNYH, NQWAIT, NSLJ,
      7                NSLP, NYH
       COMMON /DVOD02/ HU, NCFN, NETF, NFE, NJE, NLU, NNI, NQU, NST
-C
+C$omp threadprivate(/DVOD01/,/DVOD02/)
       DATA KFC/-3/, KFH/-7/, MXNCF/10/
       DATA ADDON  /1.0D-6/,    BIAS1  /6.0D0/,     BIAS2  /6.0D0/,
      1     BIAS3  /10.0D0/,    ETACF  /0.25D0/,    ETAMIN /0.1D0/,
@@ -2444,7 +2444,7 @@ C
      5                LOCJS, MAXORD, METH, MITER, MSBJ, MXHNIL, MXSTEP,
      6                N, NEWH, NEWQ, NHNIL, NQ, NQNYH, NQWAIT, NSLJ,
      7                NSLP, NYH
-C
+C$omp threadprivate(/DVOD01/)
       DATA CORTES /0.1D0/
       DATA ONE  /1.0D0/, SIX /6.0D0/, TWO /2.0D0/, ZERO /0.0D0/
 C
@@ -2616,7 +2616,7 @@ C
      5                LOCJS, MAXORD, METH, MITER, MSBJ, MXHNIL, MXSTEP,
      6                N, NEWH, NEWQ, NHNIL, NQ, NQNYH, NQWAIT, NSLJ,
      7                NSLP, NYH
-C
+C$omp threadprivate(/DVOD01/)
       DATA ONE /1.0D0/, ZERO /0.0D0/
 C
       IF ((NQ .EQ. 2) .AND. (IORD .NE. 1)) RETURN
@@ -2828,7 +2828,7 @@ C
      6                N, NEWH, NEWQ, NHNIL, NQ, NQNYH, NQWAIT, NSLJ,
      7                NSLP, NYH
       COMMON /DVOD02/ HU, NCFN, NETF, NFE, NJE, NLU, NNI, NQU, NST
-C
+C$omp threadprivate(/DVOD01/,/DVOD02/)
       DATA CCMAX /0.3D0/, CRDOWN /0.3D0/, MAXCOR /3/, MSBP /20/,
      1     RDIV  /2.0D0/
       DATA ONE /1.0D0/, TWO /2.0D0/, ZERO /0.0D0/
@@ -3057,7 +3057,7 @@ C-----------------------------------------------------------------------
      6                N, NEWH, NEWQ, NHNIL, NQ, NQNYH, NQWAIT, NSLJ,
      7                NSLP, NYH
       COMMON /DVOD02/ HU, NCFN, NETF, NFE, NJE, NLU, NNI, NQU, NST
-C
+C$omp threadprivate(/DVOD01/,/DVOD02/)
       DATA ONE /1.0D0/, THOU /1000.0D0/, ZERO /0.0D0/, PT1 /0.1D0/
 C
       IERPJ = 0
@@ -3320,7 +3320,7 @@ C
      5                LOCJS, MAXORD, METH, MITER, MSBJ, MXHNIL, MXSTEP,
      6                N, NEWH, NEWQ, NHNIL, NQ, NQNYH, NQWAIT, NSLJ,
      7                NSLP, NYH
-C
+C$omp threadprivate(/DVOD01/)
       DATA ONE /1.0D0/, ZERO /0.0D0/
 C
       IERSL = 0
@@ -3384,6 +3384,7 @@ C-----------------------------------------------------------------------
 C
       COMMON /DVOD01/ RVOD1(48), IVOD1(33)
       COMMON /DVOD02/ RVOD2(1), IVOD2(8)
+C$omp threadprivate(/DVOD01/,/DVOD02/)
       DATA LENRV1/48/, LENIV1/33/, LENRV2/1/, LENIV2/8/
 C
       IF (JOB .EQ. 2) GO TO 100
