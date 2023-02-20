@@ -5,11 +5,11 @@ module mini_ch_i_dvode
   implicit none
 
   logical, parameter :: use_stiff = .True.
-   real(dp) :: nd_atm
+  real(dp) :: nd_atm
 
 
   public ::  mini_ch_dvode, RHS_update, jac_dummy, &
-  & jac_HO, jac_CHO, jac_NCHO
+    & jac_HO, jac_CHO, jac_NCHO
 
 contains
 

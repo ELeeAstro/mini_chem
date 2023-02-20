@@ -26,14 +26,13 @@ module mini_ch_class
     character(len=20) :: c
     real(dp) :: mw, nd
     real(dp), allocatable, dimension(:) :: a_l, a_h
-    real(dp) :: H0, s0
   end type species
 
   real(dp), parameter :: kb = 1.380649e-16_dp
   real(dp), parameter :: R = 8.31446261815324e7_dp
   real(dp), parameter :: P0 = 1.0e6_dp
 
-  real(dp), parameter :: f_con = 0.01_dp
+  real(dp), parameter :: f_con = 0.001_dp
   real(dp), parameter :: del_con = 0.01_dp
   real(dp), parameter :: eps_con = 1.0e-4_dp
 
@@ -41,7 +40,9 @@ module mini_ch_class
   type(reaction), allocatable, dimension(:) :: re
   type(species), allocatable, dimension(:) :: g_sp
 
-  real(dp) :: nd_atm, P, P_cgs, T
+  real(dp), allocatable, dimension(:) :: Keq
+  real(dp), allocatable, dimension(:) :: re_f, re_r
+  !$omp threadprivate(Keq, re_f, re_r)
 
 contains
 

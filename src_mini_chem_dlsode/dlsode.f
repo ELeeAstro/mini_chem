@@ -1237,7 +1237,7 @@ C-----------------------------------------------------------------------
      3   ICF, IERPJ, IERSL, JCUR, JSTART, KFLAG, L,
      4   LYH, LEWT, LACOR, LSAVF, LWM, LIWM, METH, MITER,
      5   MAXORD, MAXCOR, MSBP, MXNCF, N, NQ, NST, NFE, NJE, NQU
-C
+C$omp threadprivate(/DLS001/)
       DATA  MORD(1),MORD(2)/12,5/, MXSTP0/500/, MXHNL0/10/
 C-----------------------------------------------------------------------
 C Block A.
@@ -1983,6 +1983,7 @@ C**End
      3   ICF, IERPJ, IERSL, JCUR, JSTART, KFLAG, L,
      4   LYH, LEWT, LACOR, LSAVF, LWM, LIWM, METH, MITER,
      5   MAXORD, MAXCOR, MSBP, MXNCF, N, NQ, NST, NFE, NJE, NQU
+C$omp threadprivate(/DLS001/)
       INTEGER I, IC, J, JB, JB2, JJ, JJ1, JP1
       DOUBLE PRECISION C, R, S, TP
       CHARACTER*80 MSG
@@ -2107,6 +2108,7 @@ C**End
      3   ICF, IERPJ, IERSL, JCUR, JSTART, KFLAG, L,
      4   LYH, LEWT, LACOR, LSAVF, LWM, LIWM, METH, MITER,
      5   MAXORD, MAXCOR, MSBP, MXNCF, N, NQ, NST, NFE, NJE, NQU
+C$omp threadprivate(/DLS001/)
       INTEGER I, I1, I2, IER, II, J, J1, JJ, LENP,
      1   MBA, MBAND, MEB1, MEBAND, ML, ML3, MU, NP1
       DOUBLE PRECISION CON, DI, FAC, HL0, R, R0, SRUR, YI, YJ, YJJ,
@@ -2288,6 +2290,7 @@ C**End
      3   ICF, IERPJ, IERSL, JCUR, JSTART, KFLAG, L,
      4   LYH, LEWT, LACOR, LSAVF, LWM, LIWM, METH, MITER,
      5   MAXORD, MAXCOR, MSBP, MXNCF, N, NQ, NST, NFE, NJE, NQU
+C$omp threadprivate(/DLS001/)
       INTEGER I, MEBAND, ML, MU
       DOUBLE PRECISION DI, HL0, PHL0, R
 C
@@ -2362,6 +2365,7 @@ C**End
       DIMENSION RSAV(*), ISAV(*)
       SAVE LENRLS, LENILS
       COMMON /DLS001/ RLS(218), ILS(37)
+C$omp threadprivate(/DLS001/)
       DATA LENRLS/218/, LENILS/37/
 C
 C***FIRST EXECUTABLE STATEMENT  DSRCOM
@@ -2497,7 +2501,7 @@ C**End
      3   ICF, IERPJ, IERSL, JCUR, JSTART, KFLAG, L,
      4   LYH, LEWT, LACOR, LSAVF, LWM, LIWM, METH, MITER,
      5   MAXORD, MAXCOR, MSBP, MXNCF, N, NQ, NST, NFE, NJE, NQU
-C
+C$omp threadprivate(/DLS001/)
 C***FIRST EXECUTABLE STATEMENT  DSTODE
       KFLAG = 0
       TOLD = TN
