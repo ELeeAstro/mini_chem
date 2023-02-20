@@ -36,7 +36,6 @@ program mini_chem_main
   print*, 'T [K], P [bar], t_step, n_step, n_sp :'
   print*, T_in, P_in/1e5_dp, t_step, n_step, n_sp
 
-
   ! Save initial conditions to VMR_IC
   VMR_IC(:) = VMR(:)
 

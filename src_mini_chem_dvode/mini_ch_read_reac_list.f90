@@ -42,7 +42,7 @@ contains
 
       ! Read reaction rate table if from table
       if (re(i)%re_t == 4) then
-        print*, 'Reading: ', trim(re(i)%fname)
+        print*, 'Reading: ', trim(met)//'_'//trim(re(i)%fname)
         open(newunit=u2,file=trim(net_dir)//trim(met)//'_'//trim(re(i)%fname),status='old',action='read',form='formatted')
         read(u2,*)
         read(u2,*) re(i)%nT, re(i)%nP, re(i)%nkf
