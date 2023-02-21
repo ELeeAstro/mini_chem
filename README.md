@@ -8,9 +8,12 @@ Mini-chem's NCHO network current consists of only 12 species with 10 reactions, 
 
 These are the papers describing mini-chem methods so far: \
 Tsai et al. (2022) - A Mini-Chemical Scheme with Net Reactions for 3D GCMs I.: Thermochemical Kinetics - A&A Volume 664, id.A82, 16 pp - arXiv:2204.04201 \
-Lee et al. (2023) - A Mini-Chemical Scheme with Net Reactions for 3D GCMs II.: 3D thermochemical modelling of WASP-39b and HD 189733b - A&A (accepted) - arXiv:
+Lee et al. (2023) - A Mini-Chemical Scheme with Net Reactions for 3D GCMs II.: 3D thermochemical modelling of WASP-39b and HD 189733b - A&A (accepted) - arXiv: arXiv:2302.09525
 
 This repository contains the standalone version of mini-chem, containing the source code and testing modules for users to use for their own purposes.
+
+The src_mini_chem_dvode and src_mini_chem_dlsode contain dvode and dlsode solver standalone variants. These are recommended for general use as they are faster and quite stable.
+These haven't been checked for threadsafe yet, so only use for non-OpenMP applications.
 
 The src_mini_chem_mp directory contains threadsafe code, suitable for GCM modelling that make use of OpenMP. We recommend using the source files from this branch as the production methods inside the GCM model, with or without OpenMP.
 
@@ -25,7 +28,7 @@ The namelist that describes the simulation set up:
 1. Network - 'HO', 'CHO' or 'NCHO' select network
 2. T_in - input temperature [K]
 3. P_in - input pressure [Pa]
-4. t_step - timestep
+4. t_step - timestep [s]
 4. n_step - number of steps
 5. data_file - path to _data file
 6. sp_file - path to _sp file
@@ -36,12 +39,11 @@ The namelist that describes the simulation set up:
 
 1. VMR - initial VMR of each species (in the species order of the _sp file)
 
-
 ## Directories
 
 ### src_mini_chem
 
-Contains [testing] fortran source files and makefile for compiling this standalone version
+A testing and development source code directory containing testing fortran source files and makefile for compiling. Advice: do not use code from this directory unless you know what you are doing.
 
 ### src_mini_chem_mp
 
@@ -49,11 +51,11 @@ Contains the OpenMP fortran source files and makefile for compiling this standal
 
 ### src_mini_chem_dvode
 
-Contains testing code the dvode solver 
+Contains a standalone version using the dvode ODE solver (most recommended)
 
 ### src_mini_chem_dlsode
 
-Contains testing code the dlsode solver
+Contains a standalone version using the dlsode ODE solver (also recommended)
 
 ### chem_data
 
@@ -73,7 +75,11 @@ Original VULCAN formatted data for each kinetic network net reaction tables for 
 
 ### outputs, outputs_mp, outputs_dvode etc
 
-Where the output from running the code is produced, also contains some benchmarking data from VULCAN
+Where the output from running the code is produced and some python plotting routines.
+
+### vulcan_benchmark_data
+ 
+Contains some benchmarking data from VULCAN.
 
 ## Future updates
 
