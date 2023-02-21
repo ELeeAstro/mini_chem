@@ -166,8 +166,10 @@ contains
     real(dp), dimension(NEQ), intent(inout) :: y
     real(dp), dimension(NEQ), intent(inout) :: f
 
-    integer :: i, k
+    integer :: i, j, k
     real(dp) :: msum, msum2, frate, rrate
+    real(dp), dimension(n_reac) :: net_pr, net_re
+    real(dp), dimension(NEQ) :: f1_pr, f2_pr, f1_re, f2_re
 
     ! Calculate the rate of change of number density for all species [cm-3/s]
     ! this is the f vector
@@ -198,12 +200,34 @@ contains
       frate = msum * re_f(i)
       rrate = msum2 * re_r(i)
 
-      ! Find flux for products
-      f(re(i)%gi_pr(:)) = f(re(i)%gi_pr(:)) + frate - rrate
+      ! Find flux for products - regular addition
+      !f(re(i)%gi_pr(:)) = f(re(i)%gi_pr(:)) + frate - rrate
+      !f(re(i)%gi_re(:)) = f(re(i)%gi_re(:)) + rrate - frate
 
-      f(re(i)%gi_re(:)) = f(re(i)%gi_re(:)) + rrate - frate
+      net_pr(i) = frate - rrate
+      net_re(i) = rrate - frate
 
     end do
+
+    !! Perform peicewise summation over the arrays
+    !! here we just assume split into 2 blocks since n_reac is quite small
+    f1_pr(:) = 0.0_dp
+    f2_pr(:) = 0.0_dp
+    f1_re(:) = 0.0_dp
+    f2_re(:) = 0.0_dp
+    do i = 1, n_reac/2
+
+      j = n_reac - i + 1
+
+      f1_pr(re(i)%gi_pr(:)) = f1_pr(re(i)%gi_pr(:)) + net_pr(i)
+      f2_pr(re(j)%gi_pr(:)) = f2_pr(re(j)%gi_pr(:)) + net_pr(j)
+
+      f1_re(re(i)%gi_re(:)) = f1_re(re(i)%gi_re(:)) + net_re(i)
+      f2_re(re(j)%gi_re(:)) = f2_re(re(j)%gi_re(:)) + net_re(j)
+
+    end do
+
+    f(:) = (f1_pr(:) + f2_pr(:)) + (f1_re(:) + f2_re(:))
 
   end subroutine RHS_update
 
