@@ -83,7 +83,8 @@ Contains some benchmarking data from VULCAN.
 
 ## Future updates
 
-TODO: Photochemistry and haze
+TODO: Photochemistry and haze \
+Improve efficency of pairwise addition implimentation
 
 ## Compiling
 

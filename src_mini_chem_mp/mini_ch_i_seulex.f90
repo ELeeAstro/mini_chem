@@ -53,7 +53,7 @@ contains
     ! ***  parameters for the SEULEX-solver  ***
     ! -----------------------------------------
 
-    rtol = 1.0e-3_dp
+    rtol = 1.0e-2_dp
     atol = 1.0e-99_dp
     itol = 0
     ijac = 1
@@ -71,7 +71,7 @@ contains
     rwork(:) = 0.0_dp
 
     rwork(1) = 1.0e-16_dp ! Rounding unit - default 1e-16
-    rwork(2) = t_end * f_con ! Max step size
+    rwork(2) = 0.0_dp  ! Max step size
     rwork(3) = 1.0e-4_dp  ! Jacobian recompuation rate
     rwork(4) = 0.1_dp ! Parameter for step size selection - default 0.1
     rwork(5) = 4.0_dp  ! Parameter for step size selection - default 4.0
@@ -80,7 +80,7 @@ contains
     rwork(8) = 0.8_dp ! Safety factor - default 0.8
     rwork(9) = 0.93_dp ! Safety factor - default 0.93
     rwork(10) = 1.0_dp ! FCN call estimated work
-    rwork(11) = 1.0_dp ! JAC call estimated work - default 5
+    rwork(11) = 5.0_dp ! JAC call estimated work - default 5
     rwork(12) = 1.0_dp ! DEC call estimated work
     rwork(13) = 1.0_dp ! SOL call estimated work
 
@@ -169,6 +169,8 @@ contains
 
     integer :: i, j, k
     real(dp) :: msum, msum2, frate, rrate
+    real(dp), dimension(n_reac) :: net_pr, net_re
+    real(dp), dimension(NEQ) :: f1_pr, f2_pr, f1_re, f2_re
 
     ! Calculate the rate of change of number density for all species [cm-3/s]
     ! this is the f vector
@@ -199,12 +201,34 @@ contains
       frate = msum * re_f(i)
       rrate = msum2 * re_r(i)
 
-      ! Find flux for products
-      f(re(i)%gi_pr(:)) = f(re(i)%gi_pr(:)) + frate - rrate
+      ! Find flux for products - regular addition
+      !f(re(i)%gi_pr(:)) = f(re(i)%gi_pr(:)) + frate - rrate
+      !f(re(i)%gi_re(:)) = f(re(i)%gi_re(:)) + rrate - frate
 
-      f(re(i)%gi_re(:)) = f(re(i)%gi_re(:)) + rrate - frate
+      net_pr(i) = frate - rrate
+      net_re(i) = rrate - frate
 
     end do
+
+    !! Perform peicewise summation over the arrays
+    !! here we just assume split into 2 blocks since n_reac is quite small
+    f1_pr(:) = 0.0_dp
+    f2_pr(:) = 0.0_dp
+    f1_re(:) = 0.0_dp
+    f2_re(:) = 0.0_dp
+    do i = 1, n_reac/2
+
+      j = n_reac - i + 1
+
+      f1_pr(re(i)%gi_pr(:)) = f1_pr(re(i)%gi_pr(:)) + net_pr(i)
+      f2_pr(re(j)%gi_pr(:)) = f2_pr(re(j)%gi_pr(:)) + net_pr(j)
+
+      f1_re(re(i)%gi_re(:)) = f1_re(re(i)%gi_re(:)) + net_re(i)
+      f2_re(re(j)%gi_re(:)) = f2_re(re(j)%gi_re(:)) + net_re(j)
+
+    end do
+
+    f(:) = (f1_pr(:) + f2_pr(:)) + (f1_re(:) + f2_re(:))
 
   end subroutine RHS_update
 

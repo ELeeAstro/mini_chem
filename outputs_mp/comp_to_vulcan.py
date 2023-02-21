@@ -14,7 +14,7 @@ with open(filename, 'rb') as handle:
 # sp the name of species, e.g., ‘H2O’
 
 
-integrator = ['dvode']
+integrator = ['seulex']
 sp = ['OH','H2','H2O','H','CO','CO2','O','CH4','C2H2','NH3','N2','HCN']
 
 nint = len(integrator)
