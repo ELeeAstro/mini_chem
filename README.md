@@ -86,7 +86,8 @@ Contains some benchmarking data from VULCAN.
 ## Future updates
 
 TODO: Photochemistry and haze \
-Improve efficency of pairwise addition implimentation
+Improve efficency of pairwise addition implimentation \
+Improve equilibrium condition detection
 
 ## Compiling
 
