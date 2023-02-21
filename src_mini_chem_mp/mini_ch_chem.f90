@@ -1,7 +1,6 @@
 module mini_ch_chem
   use mini_ch_precision
   use mini_ch_class
-  use omp_lib
   implicit none
 
 

@@ -22,11 +22,11 @@ contains
     real(dp) :: P_cgs
 
     ! Time controls
-    real(dp) :: t_begin, t_now, dt_init, t_old
+    real(dp) :: t_begin, t_now, dt_init, t_old, t_goal
     logical :: con = .False.
 
     ! RODAS variables
-    real(dp), dimension(n_sp) :: y
+    real(dp), dimension(n_sp) :: y, y_old
     real(dp), allocatable, dimension(:) :: rwork
     integer, allocatable, dimension(:) :: iwork
     real(dp) :: rtol, atol
@@ -47,7 +47,6 @@ contains
 
     !! Find initial number density of all species from VMR
     y(:) = nd_atm * VMR(:)
-
 
     ! -----------------------------------------
     ! ***  parameters for the RODAS-solver  ***
@@ -73,7 +72,7 @@ contains
     rwork(:) = 0.0_dp
 
     rwork(1) = 1.0e-16_dp ! Rounding unit - default 1e-16
-    rwork(2) = t_end * f_con ! Max step size
+    rwork(2) = 0.0_dp ! Max step size
     rwork(3) = 0.2_dp ! Parameter for step size selection - default 0.2
     rwork(4) = 6.0_dp ! Parameter for step size selection - deftaul 6.0
     rwork(5) = 0.9_dp ! Safety factor - default 0.9
@@ -90,12 +89,13 @@ contains
     rpar = 0.0_dp
     ipar = 0
 
-
     t_begin = 0.0_dp
     t_now = t_begin
     dt_init = 1.0e-99_dp
 
     ncall = 1
+
+    t_goal = t_end * f_con
 
     do while((t_now < t_end))
 
@@ -131,12 +131,12 @@ contains
         stop
       end select
 
-      if (t_now >= t_end*f_con) then
-        call check_con(n_sp,g_sp(:)%nd,y(:),t_now,t_old,con)
+      if (t_now > t_goal) then
+        call check_con(n_sp,y(:),y_old(:),t_now,t_old,con)
         if (con .eqv. .True.) then
-          g_sp(:)%nd = y(:)
           exit
         end if
+        t_goal = t_end
       end if
 
       ncall = ncall + 1

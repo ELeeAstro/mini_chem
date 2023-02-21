@@ -19,6 +19,8 @@ The src_mini_chem_mp directory contains threadsafe code, suitable for GCM modell
 
 This code is in active development and aims to have continual improvements to stability and speed, please report bugs or improvements you find.
 
+NOTE: The rodas solver may not work with intel compilers, it is unclear why. 
+
 ## mini_chem.nml
 
 ### mini_chem

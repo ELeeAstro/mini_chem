@@ -4,10 +4,10 @@ module mini_ch_i_radau5
   use mini_ch_chem
   implicit none
 
+  real(dp) :: nd_atm
+
   public ::  mini_ch_radau5, RHS_update, jac_dummy, mas_dummy, solout, &
   & jac_HO, jac_CHO, jac_NCHO
-
-  real(dp) :: nd_atm
 
 contains
 
@@ -26,7 +26,7 @@ contains
     logical :: con = .False.
 
     ! radau5 variables
-    real(dp), dimension(n_sp) :: y
+    real(dp), dimension(n_sp) :: y, y_old
     real(dp), allocatable, dimension(:) :: rwork
     integer, allocatable, dimension(:) :: iwork
     real(dp) :: rtol, atol
@@ -46,7 +46,6 @@ contains
 
     !! Find initial number density of all species from VMR
     y(:) = nd_atm * VMR(:)
-
 
     ! -----------------------------------------
     ! ***  parameters for the RADAU5-solver  ***
@@ -75,7 +74,7 @@ contains
     rwork(4) = min(0.03_dp,sqrt(rtol)) ! stopping factor for Newton method
     rwork(5) = 1.0_dp !  Small system reccomendation
     rwork(6) = 1.2_dp  ! Small  system reccomendation
-    rwork(7) = t_end * f_con   ! Max step size
+    rwork(7) = 0.0_dp   ! Max step size
     rwork(8) = 0.2_dp ! Step size selection 1
     rwork(9) = 8.0_dp ! Step size selection 2
 
@@ -106,6 +105,7 @@ contains
 
     do while((t_now < t_end))
 
+      y_old(:) = y(:)
       t_old = t_now
 
       select case(network)
@@ -135,14 +135,12 @@ contains
         stop
       end select
 
-      if (t_now >= t_goal) then
-        call check_con(n_sp,g_sp(:)%nd,y(:),t_now,t_old,con)
+      if (t_now > t_goal) then
+        call check_con(n_sp,y(:),y_old(:),t_now,t_old,con)
         if (con .eqv. .True.) then
           exit
         end if
         t_goal = t_end
-      else if (idid < 0) then
-        exit
       end if
 
       ncall = ncall + 1

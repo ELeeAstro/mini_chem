@@ -2,7 +2,6 @@ module mini_ch_i_seulex
   use mini_ch_precision
   use mini_ch_class
   use mini_ch_chem
-  !use omp_lib
   implicit none
 
   real(dp) :: nd_atm
@@ -53,7 +52,7 @@ contains
     ! ***  parameters for the SEULEX-solver  ***
     ! -----------------------------------------
 
-    rtol = 1.0e-2_dp
+    rtol = 1.0e-3_dp
     atol = 1.0e-99_dp
     itol = 0
     ijac = 1
