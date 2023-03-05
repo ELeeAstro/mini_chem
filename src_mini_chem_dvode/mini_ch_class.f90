@@ -26,6 +26,7 @@ module mini_ch_class
     character(len=20) :: c
     real(dp) :: mw, nd
     real(dp), allocatable, dimension(:) :: a_l, a_h
+    integer, allocatable, dimension(:) :: ri_re, ri_pr
   end type species
 
   real(dp), parameter :: kb = 1.380649e-16_dp

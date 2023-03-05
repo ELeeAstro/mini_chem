@@ -13,7 +13,7 @@ module mini_ch_precision
   public :: sp, dp !, qp
 
 
-  ! Fortran 2008 intrinsic precisions - reccomonded if possible
+  ! Fortran 2008 intrinsic precisions - reccomended if possible
   integer, parameter :: sp = REAL32
   integer, parameter :: dp = REAL64
   ! integer, parameter :: qp = REAL128

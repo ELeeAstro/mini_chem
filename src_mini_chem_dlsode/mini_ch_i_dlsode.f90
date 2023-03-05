@@ -175,7 +175,6 @@ contains
     ! this is the f vector
 
     ! Loop through reactions add rates to the f array
-    f(:) = 0.0_dp
     do i = 1, n_reac
       ! Do the forward and backward flux calculation for each speices in the reaction
 

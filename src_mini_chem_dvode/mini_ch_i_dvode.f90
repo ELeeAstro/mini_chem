@@ -7,7 +7,6 @@ module mini_ch_i_dvode
   logical, parameter :: use_stiff = .True.
   real(dp) :: nd_atm
 
-
   public ::  mini_ch_dvode, RHS_update, jac_dummy, &
     & jac_HO, jac_CHO, jac_NCHO
 
@@ -149,7 +148,7 @@ contains
 
       if (mod(ncall,50) == 0) then
         istate = 1
-      else  if (istate == -1) then
+      else if (istate == -1) then
         istate = 2
       else if (istate < -1) then
         print*, istate
@@ -183,7 +182,6 @@ contains
     ! this is the f vector
 
     ! Loop through reactions add rates to the f array
-    f(:) = 0.0_dp
     do i = 1, n_reac
       ! Do the forward and backward flux calculation for each speices in the reaction
 

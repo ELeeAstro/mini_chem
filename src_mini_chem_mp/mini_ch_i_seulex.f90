@@ -9,7 +9,6 @@ module mini_ch_i_seulex
   public ::  mini_ch_seulex, RHS_update, jac_dummy, mas_dummy, solout &
   &, jac_HO, jac_CHO, jac_NCHO
 
-
 contains
 
   subroutine mini_ch_seulex(T_in, P_in, t_end, VMR, network)
@@ -175,7 +174,6 @@ contains
     ! this is the f vector
 
     ! Loop through reactions add rates to the f array
-    f(:) = 0.0_dp
     do i = 1, n_reac
       ! Do the forward and backward flux calculation for each speices in the reaction
 
