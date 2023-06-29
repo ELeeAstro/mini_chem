@@ -114,8 +114,6 @@ contains
 
     ncall = 0
 
-    t_goal = t_end * f_con
-
     do while (t_now < t_end)
 
       y_old(:) = y(:)
@@ -136,17 +134,14 @@ contains
         stop
       end select
 
-      if (t_now >= t_end*f_con) then
-        call check_con(n_sp,y(:),y_old(:),t_now,t_old,con)
-        if (con .eqv. .True.) then
-          exit
-        end if
-        t_goal = t_end
+      call check_con(n_sp,y(:),y_old(:),t_now,t_old,con)
+      if (con .eqv. .True.) then
+        exit
       end if
 
       ncall = ncall + 1
 
-      if (mod(ncall,50) == 0) then
+      if (mod(ncall,10) == 0) then
         istate = 1
       else if (istate == -1) then
         istate = 2

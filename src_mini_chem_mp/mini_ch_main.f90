@@ -74,16 +74,16 @@ program mini_chem_main
 
     !$omp task
     ! Call radau5 O(5) - implicit Runge-Kutta method
-    call mini_ch_radau5(T_in, P_in, t_step, VMR_cp(3,:), network)
-    write(u(3),*) n, t_now, VMR_cp(3,:)
-    print*, omp_get_thread_num(), 'radau5: ', VMR_cp(3,:), sum(VMR_cp(3,:))
+    !call mini_ch_radau5(T_in, P_in, t_step, VMR_cp(3,:), network)
+    !write(u(3),*) n, t_now, VMR_cp(3,:)
+    !print*, omp_get_thread_num(), 'radau5: ', VMR_cp(3,:), sum(VMR_cp(3,:))
     !$omp end task
 
     !$omp task
     ! Call rodas O(4) Rosenbrock method
-    call mini_ch_rodas(T_in, P_in, t_step, VMR_cp(2,:), network)
-    write(u(2),*) n, t_now, VMR_cp(2,:)
-    print*, omp_get_thread_num(), 'rodas: ', VMR_cp(2,:), sum(VMR_cp(2,:))
+    !call mini_ch_rodas(T_in, P_in, t_step, VMR_cp(2,:), network)
+    !write(u(2),*) n, t_now, VMR_cp(2,:)
+    !print*, omp_get_thread_num(), 'rodas: ', VMR_cp(2,:), sum(VMR_cp(2,:))
     !$omp end task
 
     !$omp task

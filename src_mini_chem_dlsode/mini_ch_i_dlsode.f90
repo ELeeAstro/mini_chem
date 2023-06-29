@@ -59,6 +59,7 @@ contains
     if (use_stiff .eqv. .True.) then
       ! Problem is stiff (usual)
       ! mf = 21 - full jacobian matrix with jacobian save
+      ! mf = 22 - internal calculated jacobian
       mf = 21
       rworkdim = 22 +  9*n_sp + n_sp**2
       iworkdim = 20 + n_sp
@@ -109,8 +110,6 @@ contains
 
     ncall = 0
 
-    t_goal = t_end * f_con
-
     do while (t_now < t_end)
 
       y_old(:) = y(:)
@@ -131,12 +130,9 @@ contains
         stop
       end select
 
-      if (t_now >= t_end*f_con) then
-        call check_con(n_sp,y(:),y_old(:),t_now,t_old,con)
-        if (con .eqv. .True.) then
-          exit
-        end if
-        t_goal = t_end
+      call check_con(n_sp,y(:),y_old(:),t_now,t_old,con)
+      if (con .eqv. .True.) then
+        exit
       end if
 
       ncall = ncall + 1
@@ -158,18 +154,21 @@ contains
 
   end subroutine mini_ch_dlsode
 
-  subroutine RHS_update(NEQ, time, y, f)
+ subroutine RHS_update(NEQ, time, y, f, rpar, ipar)
     implicit none
 
     integer, intent(in) ::  NEQ
     real(dp), intent(inout) :: time
     real(dp), dimension(NEQ), intent(inout) :: y
     real(dp), dimension(NEQ), intent(inout) :: f
+    real(dp), intent(inout) :: rpar
+    integer, intent(inout) :: ipar
 
-    integer :: i, j, k
+    integer :: i, k, j2, j3, j4, j5
     real(dp) :: msum, msum2, frate, rrate
     real(dp), dimension(n_reac) :: net_pr, net_re
-    real(dp), dimension(NEQ) :: f1_pr, f2_pr, f1_re, f2_re
+    real(dp), dimension(NEQ) :: f1_pr, f2_pr, f3_pr, f4_pr, f5_pr
+    real(dp), dimension(NEQ) :: f1_re, f2_re, f3_re, f4_re, f5_re
 
     ! Calculate the rate of change of number density for all species [cm-3/s]
     ! this is the f vector
@@ -209,24 +208,42 @@ contains
     end do
 
     !! Perform peicewise summation over the arrays
-    !! here we just assume split into 2 blocks since n_reac is quite small
+    !! here we just assume split into 5 blocks since n_reac is quite small
     f1_pr(:) = 0.0_dp
     f2_pr(:) = 0.0_dp
+    f3_pr(:) = 0.0_dp
+    f4_pr(:) = 0.0_dp
+    f5_pr(:) = 0.0_dp
+
     f1_re(:) = 0.0_dp
     f2_re(:) = 0.0_dp
-    do i = 1, n_reac/2
+    f3_re(:) = 0.0_dp
+    f4_re(:) = 0.0_dp
+    f5_re(:) = 0.0_dp
 
-      j = n_reac - i + 1
+    do i = 1, n_reac/5
+
+      j2 = i + n_reac/5
+      j3 = i + 2*n_reac/5
+      j4 = i + 3*n_reac/5
+      j5 = i + 4*n_reac/5
 
       f1_pr(re(i)%gi_pr(:)) = f1_pr(re(i)%gi_pr(:)) + net_pr(i)
-      f2_pr(re(j)%gi_pr(:)) = f2_pr(re(j)%gi_pr(:)) + net_pr(j)
-
+      f2_pr(re(j2)%gi_pr(:)) = f2_pr(re(j2)%gi_pr(:)) + net_pr(j2)
+      f3_pr(re(j3)%gi_pr(:)) = f3_pr(re(j3)%gi_pr(:)) + net_pr(j3)
+      f4_pr(re(j4)%gi_pr(:)) = f4_pr(re(j4)%gi_pr(:)) + net_pr(j4)
+      f5_pr(re(j5)%gi_pr(:)) = f5_pr(re(j5)%gi_pr(:)) + net_pr(j5)     
+     
       f1_re(re(i)%gi_re(:)) = f1_re(re(i)%gi_re(:)) + net_re(i)
-      f2_re(re(j)%gi_re(:)) = f2_re(re(j)%gi_re(:)) + net_re(j)
-
+      f2_re(re(j2)%gi_re(:)) = f2_re(re(j2)%gi_re(:)) + net_re(j2)
+      f3_re(re(j3)%gi_re(:)) = f3_re(re(j3)%gi_re(:)) + net_re(j3)
+      f4_re(re(j4)%gi_re(:)) = f4_re(re(j4)%gi_re(:)) + net_re(j4)
+      f5_re(re(j5)%gi_re(:)) = f5_re(re(j5)%gi_re(:)) + net_re(j5)
+ 
     end do
 
-    f(:) = (f1_pr(:) + f2_pr(:)) + (f1_re(:) + f2_re(:))
+    f(:) = (f1_pr(:) + f2_pr(:) + f3_pr(:) + f4_pr(:) + f5_pr(:)) + &
+      & (f1_re(:) + f2_re(:) + f3_re(:) + f4_re(:) + f5_re(:))
 
   end subroutine RHS_update
 
