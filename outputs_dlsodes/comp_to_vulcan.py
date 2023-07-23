@@ -5,7 +5,7 @@ import pickle
 
 filename = '../vulcan_benchmark_data/net-T1500KlogP7.0-NCHO-solar_hot_noHe.vul'
 
-ivmr = 0
+ivmr = 2
 with open(filename, 'rb') as handle:
   data = pickle.load(handle)
   time_V = data['variable']['t_time']
@@ -14,7 +14,7 @@ with open(filename, 'rb') as handle:
 # sp the name of species, e.g., ‘H2O’
 
 
-integrator = ['seulex']
+integrator = ['dlsodes']
 sp = ['OH','H2','H2O','H','CO','CO2','O','CH4','C2H2','NH3','N2','HCN']
 
 nint = len(integrator)

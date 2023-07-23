@@ -2,7 +2,7 @@ program mini_chem_main
   use mini_ch_precision
   use mini_ch_class, only: g_sp
   use mini_ch_read_reac_list, only : read_react_list
-  use mini_ch_i_dvode, only : mini_ch_dvode
+  use mini_ch_i_dlsodes, only : mini_ch_dlsodes
   implicit none
 
   integer :: n, n_step, u_nml
@@ -46,8 +46,8 @@ program mini_chem_main
   print*, 'integrator: ', g_sp(:)%c, 'VMR sum'
   print*, 'IC: ', VMR_IC(:), sum(VMR_IC(:))
 
-  integrator = 'dvode'
-  open(newunit=u,file='outputs_dvode/'//trim(integrator)//'.txt',action='readwrite')
+  integrator = 'dlsodes'
+  open(newunit=u,file='outputs_dlsodes/'//trim(integrator)//'.txt',action='readwrite')
   write(u,*) 'n', 'time', g_sp(:)%c
   write(u,*) 0, 0.0, VMR_IC(:)
 
@@ -67,9 +67,9 @@ program mini_chem_main
     !! Scale VMR to 1
     VMR(:) = VMR(:)/sum(VMR(:))
 
-    ! Call dvode - BDF method
-    call mini_ch_dvode(T_in, P_in, t_step, VMR(:), network)
-    print*, 'dvode: ', VMR(:), sum(VMR(:))
+    ! Call dlsode - bdf method
+    call mini_ch_dlsodes(T_in, P_in, t_step, VMR(:), network)
+    print*, 'dlsodes: ', VMR(:), sum(VMR(:))
     write(u,*) n, t_now, VMR(:)
 
     !! Scale VMR to 1

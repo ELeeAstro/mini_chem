@@ -1,18 +1,18 @@
-module mini_ch_i_seulex
+module mini_ch_i_dlsodes
   use mini_ch_precision
   use mini_ch_class
-  use mini_ch_chem, only: reaction_rates, reverse_reactions, check_con
+  use mini_ch_chem
   implicit none
 
+  logical, parameter :: use_stiff = .True.
   real(dp) :: nd_atm
 
-  private
-  public ::  mini_ch_seulex, RHS_update, jac_dummy, mas_dummy, solout &
-  &, jac_HO, jac_CHO, jac_NCHO
+  public ::  mini_ch_dlsodes, RHS_update, jac_dummy, &
+    & jac_HO, jac_CHO, jac_NCHO
 
 contains
 
-  subroutine mini_ch_seulex(T_in, P_in, t_end, VMR, network)
+  subroutine mini_ch_dlsodes(T_in, P_in, t_end, VMR, network)
     implicit none
 
     real(dp), intent(in) :: T_in, P_in, t_end
@@ -23,16 +23,16 @@ contains
     real(dp) :: P_cgs
 
     ! Time controls
-    real(dp) :: t_now,  t_old, dt_init
+    real(dp) :: t_begin, t_now, t_old, t_goal
     logical :: con = .False.
 
-    ! seulex variables
+    ! DLSODES variables
+    real(dp) :: rtol, atol
     real(dp), dimension(n_sp) :: y, y_old
     real(dp), allocatable, dimension(:) :: rwork
     integer, allocatable, dimension(:) :: iwork
-    real(dp) :: rtol, atol
-    real(dp) :: rpar
-    integer :: itol, ijac, mljac, mujac, imas, mlmas, mumas, iout, lrwork, liwork, ipar, idid
+    integer :: itol, itask, istate, iopt, mf
+    integer :: rworkdim, iworkdim
 
     !! Find the number density of the atmosphere
     P_cgs = P_in * 10.0_dp   ! Convert pascal to dyne cm-2
@@ -49,108 +49,97 @@ contains
     y(:) = nd_atm * VMR(:)
 
     ! -----------------------------------------
-    ! ***  parameters for the SEULEX-solver  ***
+    ! ***  parameters for the DLSODES solver  ***
     ! -----------------------------------------
 
-    rtol = 1.0e-6_dp
-    atol = 1.0e-99_dp
-    itol = 0
-    ijac = 0
-    mljac = n_sp
-    mujac = n_sp
-    imas = 0
-    mlmas = n_sp
-    mumas = n_sp
-    iout = 0
-    idid = 0
+    itask = 1
+    istate = 1
+    iopt = 0
 
-    ! Real work array
-    lrwork = n_sp*(n_sp*3 + 12 + 8) + 4*12 + 20
-    allocate(rwork(lrwork))
-    rwork(:) = 0.0_dp
+    ! Method flag
+    if (use_stiff .eqv. .True.) then
+      ! Problem is stiff (usual)
+      ! mf = 121 - full jacobian matrix with jacobian save
+      ! mf = 222 - internal calculated jacobian
+      mf = 222
+      rworkdim = 20 + int((2.0_dp + 1.0_dp/2.0_dp)*n_sp**2 + (11.0_dp + 9.0_dp/2.0_dp)*n_sp)
+      iworkdim = 30
+      allocate(rwork(rworkdim), iwork(iworkdim))
 
-    rwork(1) = 1.0e-16_dp ! Rounding unit - default 1e-16
-    rwork(2) = 0.0_dp  ! Max step size
-    rwork(3) = 1.0e-4_dp  ! Jacobian recompuation rate
-    rwork(4) = 0.1_dp ! Parameter for step size selection - default 0.1
-    rwork(5) = 4.0_dp  ! Parameter for step size selection - default 4.0
-    rwork(6) = 0.7_dp  ! Parameter for order selection - default 0.7
-    rwork(7) = 0.9_dp  ! Parameter for order selection - default 0.9
-    rwork(8) = 0.8_dp ! Safety factor - default 0.8
-    rwork(9) = 0.93_dp ! Safety factor - default 0.93
-    rwork(10) = 1.0_dp ! FCN call estimated work
-    rwork(11) = 1.0_dp ! JAC call estimated work - default 5
-    rwork(12) = 1.0_dp ! DEC call estimated work
-    rwork(13) = 1.0_dp ! SOL call estimated work
+      itol = 1
+      rtol = 1.0e-9_dp           ! Relative tolerances for each scalar
+      atol = 1.0e-99_dp               ! Absolute tolerance for each scalar (floor value)
 
-    ! Integer work array
-    liwork = 2*n_sp + 12 + 20
-    allocate(iwork(liwork))
-    iwork(:) = 0
+      rwork(:) = 0.0_dp
+      iwork(:) = 0
 
-    iwork(1) = 0 ! Hessenberg form?
-    iwork(2) = 0 ! Default step numbers - 0 = 100000
-    iwork(3) = 0 ! Max columns in extrapolation table - default 12
-    iwork(4) = 0 ! Switch for step size sequence - defualt 0 = 2
-    iwork(5) = 0 ! Lambda parameter for dense output
-    iwork(6) = 0 ! Number of components for which dense output is required
+    else
+      ! Problem is not too stiff (not typical)
+      ! mf = 10 - full jacobian matrix with jacobian save
+      mf = 10
+      rworkdim = 20 + 16*n_sp
+      iworkdim = 30
+      allocate(rwork(rworkdim), iwork(iworkdim))
+      itol = 4
+      rtol = 1.0e-3_dp
+      atol = 1.0e-99_dp
 
-    rpar = 0.0_dp
-    ipar = 0
+    end if
 
-    t_now = 0.0_dp
-    dt_init = 1e-99_dp
+    t_begin = 0.0_dp
+    t_now = t_begin
+
+    ! Set the printing flag
+    ! 0 = no printing, 1 = printing
+    call xsetf(1)
 
     ncall = 0
 
-    do while((t_now < t_end))
+    do while (t_now < t_end)
 
       y_old(:) = y(:)
       t_old = t_now
 
       select case(network)
       case('HO')
-        call SEULEX(n_sp,RHS_update,1,t_now,y,t_end,dt_init, &
-          &                  rtol,atol,itol, &
-          &                  jac_HO,ijac,mljac,mujac, &
-          &                  mas_dummy,imas,mlmas,mumas, &
-          &                  solout,iout, &
-          &                  rwork,lrwork,iwork,liwork,rpar,ipar,idid)
+        call DLSODES (RHS_update, n_sp, y, t_now, t_end, itol, rtol, atol, itask, &
+        & istate, iopt, rwork, rworkdim, iwork, iworkdim, jac_HO, mf)
       case('CHO')
-        call SEULEX(n_sp,RHS_update,1,t_now,y,t_end,dt_init, &
-          &                  rtol,atol,itol, &
-          &                  jac_CHO,ijac,mljac,mujac, &
-          &                  mas_dummy,imas,mlmas,mumas, &
-          &                  solout,iout, &
-          &                  rwork,lrwork,iwork,liwork,rpar,ipar,idid)
+        call DLSODES (RHS_update, n_sp, y, t_now, t_end, itol, rtol, atol, itask, &
+        & istate, iopt, rwork, rworkdim, iwork, iworkdim, jac_CHO, mf)
       case('NCHO')
-        call SEULEX(n_sp,RHS_update,0,t_now,y,t_end,dt_init, &
-          &                  rtol,atol,itol, &
-          &                  jac_dummy,ijac,mljac,mujac, &
-          &                  mas_dummy,imas,mlmas,mumas, &
-          &                  solout,iout, &
-          &                  rwork,lrwork,iwork,liwork,rpar,ipar,idid)
+        call DLSODES (RHS_update, n_sp, y, t_now, t_end, itol, rtol, atol, itask, &
+        & istate, iopt, rwork, rworkdim, iwork, iworkdim, jac_dummy, mf)
       case default
         print*, 'Invalid network provided: ', trim(network)
         stop
       end select
 
-      !call check_con(n_sp,y(:),y_old(:),t_now,t_old,con)
-      !if (con .eqv. .True.) then
-      !  exit
-      !end if
+      ! call check_con(n_sp,y(:),y_old(:),t_now,t_old,con)
+      ! if (con .eqv. .True.) then
+      !   exit
+      ! end if
 
       ncall = ncall + 1
+
+      if (mod(ncall,50) == 0) then
+        istate = 1
+      else  if (istate == -1) then
+        istate = 2
+      else if (istate < -1) then
+        print*, istate
+        exit
+      end if
 
     end do
 
     VMR(:) = y(:)/nd_atm
 
-    deallocate(rwork, iwork, Keq, re_r, re_f)
+    deallocate(Keq, re_r, re_f, rwork, iwork)
 
-  end subroutine mini_ch_seulex
+  end subroutine mini_ch_dlsodes
 
-  subroutine RHS_update(NEQ, time, y, f, rpar, ipar)
+ subroutine RHS_update(NEQ, time, y, f, rpar, ipar)
     implicit none
 
     integer, intent(in) ::  NEQ
@@ -238,25 +227,24 @@ contains
  
     end do
 
-    do i = 1, neq
-      f(i) = (f1_pr(i) + f2_pr(i) + f3_pr(i) + f4_pr(i) + f5_pr(i)) + &
-        & (f1_re(i) + f2_re(i) + f3_re(i) + f4_re(i) + f5_re(i))
-      !print*, i, f(i)
-    end do
+    f(:) = (f1_pr(:) + f2_pr(:) + f3_pr(:) + f4_pr(:) + f5_pr(:)) + &
+      & (f1_re(:) + f2_re(:) + f3_re(:) + f4_re(:) + f5_re(:))
 
   end subroutine RHS_update
 
-  subroutine jac_dummy(N,X,Y,DFY,LDFY,RPAR,IPAR)
-    integer :: N,LDFY,IPAR
-    double precision :: X,Y(N),DFY(LDFY,N),RPAR
+  subroutine jac_dummy (NEQ, X, Y, ML, MU, PD, NROWPD)
+    integer, intent(in) :: NEQ, ML, MU, NROWPD
+    real(dp), intent(in) :: X
+    real(dp), dimension(NEQ), intent(in) :: Y
+    real(dp), dimension(NROWPD, NEQ), intent(inout) :: PD
   end subroutine jac_dummy
 
-  subroutine jac_NCHO(N,X,Y,DFY,LDFY,RPAR,IPAR)
+  subroutine jac_NCHO(N, X, Y, ML, MU, DFY, NROWPD)
     implicit none
-    integer, intent(in) :: N, LDFY, ipar
-    real(dp), intent(in) :: X, RPAR
+    integer, intent(in) :: N, ML, MU, NROWPD
+    real(dp), intent(in) :: X
     real(dp), dimension(N), intent(in) :: Y
-    real(dp), dimension(LDFY, N),intent(out) :: DFY
+    real(dp), dimension(NROWPD, N), intent(out) :: DFY
 
     dfy(1,1) = -re_f(1)*y(2) - re_f(2)*y(5) - re_r(3)*y(4)
     dfy(1,2) = -re_f(1)*y(1) + re_f(3)*y(7)
@@ -409,12 +397,12 @@ contains
 
   end subroutine jac_NCHO
 
-  subroutine jac_CHO(N,X,Y,DFY,LDFY,RPAR,IPAR)
+  subroutine jac_CHO(N, X, Y, ML, MU, DFY, NROWPD)
     implicit none
-    integer, intent(in) :: N, LDFY, ipar
-    real(dp), intent(in) :: X, RPAR
+    integer, intent(in) :: N, ML, MU, NROWPD
+    real(dp), intent(in) :: X
     real(dp), dimension(N), intent(in) :: Y
-    real(dp), dimension(LDFY, N),intent(out) :: DFY
+    real(dp), dimension(NROWPD, N), intent(out) :: DFY
 
     dfy(1,1) = -re_f(1)*y(2) - re_f(2)*y(5) - re_r(3)*y(4)
     dfy(1,2) = -re_f(1)*y(1) + re_f(3)*y(7)
@@ -501,12 +489,12 @@ contains
 
   end subroutine jac_CHO
 
-  subroutine jac_HO(N,X,Y,DFY,LDFY,RPAR,IPAR)
+  subroutine jac_HO(N, X, Y, ML, MU, DFY, NROWPD)
     implicit none
-    integer, intent(in) :: N, LDFY, ipar
-    real(dp), intent(in) :: X, RPAR
+    integer, intent(in) :: N, ML, MU, NROWPD
+    real(dp), intent(in) :: X
     real(dp), dimension(N), intent(in) :: Y
-    real(dp), dimension(LDFY, N),intent(out) :: DFY
+    real(dp), dimension(NROWPD, N), intent(out) :: DFY
 
     dfy(1, 1) = -re_f(1)*y(2) - re_r(2)*y(4)
     dfy(1, 2) = -re_f(1)*y(1) + re_f(2)*y(5)
@@ -536,14 +524,4 @@ contains
 
   end subroutine jac_HO
 
-  subroutine mas_dummy(N,AM,LMAS,RPAR,IPAR)
-    integer :: N, LMAS, IPAR
-    double precision :: AM(LMAS,N), RPAR
-  end subroutine mas_dummy
-
-  subroutine solout(NR,XOLD,X,Y,CONT,LRC,N,RPAR,IPAR,IRTRN)
-    integer :: NR, LRC, N, IPAR, IRTRN
-    double precision :: XOLD, X, Y(N), CONT(LRC), RPAR
-  end subroutine solout
-
-end module mini_ch_i_seulex
+end module mini_ch_i_dlsodes
