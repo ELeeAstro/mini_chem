@@ -118,7 +118,7 @@ contains
       end if
 
       re_r(i) = re_f(i)/Keq(i)
-     !print*, i, re_f(i), re_r(i)
+      !print*, i, re_f(i), re_r(i)
 
     end do
 

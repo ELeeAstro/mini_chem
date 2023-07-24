@@ -52,10 +52,10 @@ contains
     ! ***  parameters for the SEULEX-solver  ***
     ! -----------------------------------------
 
-    rtol = 1.0e-6_dp
+    rtol = 1.0e-1_dp
     atol = 1.0e-99_dp
     itol = 0
-    ijac = 0
+    ijac = 1
     mljac = n_sp
     mujac = n_sp
     imas = 0
@@ -124,9 +124,9 @@ contains
           &                  solout,iout, &
           &                  rwork,lrwork,iwork,liwork,rpar,ipar,idid)
       case('NCHO')
-        call SEULEX(n_sp,RHS_update,0,t_now,y,t_end,dt_init, &
+        call SEULEX(n_sp,RHS_update,1,t_now,y,t_end,dt_init, &
           &                  rtol,atol,itol, &
-          &                  jac_dummy,ijac,mljac,mujac, &
+          &                  jac_NCHO,ijac,mljac,mujac, &
           &                  mas_dummy,imas,mlmas,mumas, &
           &                  solout,iout, &
           &                  rwork,lrwork,iwork,liwork,rpar,ipar,idid)

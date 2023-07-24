@@ -7,15 +7,18 @@ This makes use of 'net forward reaction tables', which reduce the number of reac
 Mini-chem's NCHO network currently consists of only 12 species with 10 reactions, making it a lightweight and easy to couple network to large scale 3D GCM models, or other models of interest (such as 1D or 2D kinetic modelling efforts).
 
 These are the papers describing mini-chem methods so far: \
-Tsai et al. (2022) - A Mini-Chemical Scheme with Net Reactions for 3D GCMs I.: Thermochemical Kinetics - A&A Volume 664, id.A82, 16 pp - arXiv:2204.04201 \
-Lee et al. (2023) - A Mini-Chemical Scheme with Net Reactions for 3D GCMs II.: 3D thermochemical modelling of WASP-39b and HD 189733b - A&A (accepted) - arXiv: arXiv:2302.09525
+Tsai et al. (2022) - A Mini-Chemical Scheme with Net Reactions for 3D GCMs I.: Thermochemical Kinetics - A&A Volume 664, id.A82, 16 pp. - arXiv:2204.04201 \
+Lee et al. (2023) - A Mini-Chemical Scheme with Net Reactions for 3D GCMs II.: 3D thermochemical modelling of WASP-39b and HD 189733b - A&A  Volume 672, id.A110, 13 pp. - arXiv: arXiv:2302.09525
 
 This repository contains the standalone version of mini-chem, containing the source code and testing modules for users to use for their own purposes.
 
-The src_mini_chem_dvode and src_mini_chem_dlsode contain dvode and dlsode solver standalone variants. These are recommended for general use as they are faster and quite stable.
+The src_mini_chem_seulex is the reccomended version for most purposes. 
+The src_mini_chem_dvode, src_mini_chem_dlsode and src_mini_chem_dlsodes contain dvode, dlsode and dlsodes solver standalone variants as an alternative. 
 These haven't been checked for threadsafe yet, so only use for non-OpenMP applications.
 
-The src_mini_chem_mp directory contains threadsafe code, suitable for GCM modelling that make use of OpenMP. We recommend using the source files from this branch as the production methods inside the GCM model, with or without OpenMP.
+Other directories are currently experimental
+
+NOTE: Integration of the network may take a long time for high pressures (> 10-20 bar) and high temperatures (> 1000 K), we suggest applying a CE scheme for those deep regions, which should be at CE anyway.
 
 This code is in active development and aims to have continual improvements to stability and speed, please report bugs or improvements you find.
 
