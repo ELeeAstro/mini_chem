@@ -54,7 +54,7 @@ contains
 
     itask = 1
     istate = 1
-    iopt = 0
+    iopt = 1
 
     ! Method flag
     if (use_stiff .eqv. .True.) then
@@ -72,6 +72,9 @@ contains
 
       rwork(:) = 0.0_dp
       iwork(:) = 0
+
+      iwork(5) = 2
+      iwork(7) = 1
 
     else
       ! Problem is not too stiff (not typical)
