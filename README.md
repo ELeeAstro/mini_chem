@@ -46,21 +46,25 @@ The namelist that describes the simulation set up:
 
 ## Directories
 
-### src_mini_chem
+### src_mini_chem_seulex
 
-A testing and development source code directory containing testing fortran source files and makefile for compiling. Advice: do not use code from this directory unless you know what you are doing.
+The standalone seulex version of mini_chem, reccomended for most applications. 
 
 ### src_mini_chem_mp
 
-Contains the OpenMP fortran source files and makefile for compiling this standalone version (Recommended version is seulex)
+Experimental
 
 ### src_mini_chem_dvode
 
-Contains a standalone version using the dvode ODE solver (most recommended)
+Contains a standalone version using the dvode ODE solver (alternative)
 
 ### src_mini_chem_dlsode
 
-Contains a standalone version using the dlsode ODE solver (also recommended)
+Contains a standalone version using the dlsode ODE solver (alternative)
+
+### src_mini_chem_dlsodes
+
+Contains a standalone version using the dlsodes ODE solver (alternative)
 
 ### chem_data
 
