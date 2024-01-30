@@ -41,7 +41,7 @@ contains
     allocate(Keq(n_reac), re_f(n_reac), re_r(n_reac))
 
     ! First find the reverse reaction coefficents (Keq)
-    call reverse_reactions(T_in, P_cgs)
+    call reverse_reactions(T_in)
     ! Find the forward, backward and net reaction rates
     call reaction_rates(T_in, P_cgs, nd_atm)
 
@@ -67,8 +67,8 @@ contains
       allocate(rwork(rworkdim), iwork(iworkdim))
 
       itol = 1
-      rtol = 1.0e-9_dp           ! Relative tolerances for each scalar
-      atol = 1.0e-99_dp               ! Absolute tolerance for each scalar (floor value)
+      rtol = 1.0e-3_dp           ! Relative tolerances for each scalar
+      atol = 1.0e-20_dp               ! Absolute tolerance for each scalar (floor value)
 
       rwork(:) = 0.0_dp
       iwork(:) = 0

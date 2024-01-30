@@ -4,8 +4,8 @@
 !network = 'CHO'
 network = 'NCHO'
 
-T_in = 2000.0
-P_in = 1.0e7
+T_in = 1500.0
+P_in = 1.0e6
 
 t_step = 60
 n_step = 50000
