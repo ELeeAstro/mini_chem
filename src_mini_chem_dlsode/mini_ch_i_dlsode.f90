@@ -40,7 +40,7 @@ contains
     allocate(Keq(n_reac), re_f(n_reac), re_r(n_reac))
 
     ! First find the reverse reaction coefficents (Keq)
-    call reverse_reactions(T_in, P_cgs)
+    call reverse_reactions(T_in)
     ! Find the forward, backward and net reaction rates
     call reaction_rates(T_in, P_cgs, nd_atm)
 
@@ -66,17 +66,17 @@ contains
       allocate(rtol(n_sp), atol(n_sp), rwork(rworkdim), iwork(iworkdim))
 
       itol = 4
-      rtol(:) = 1.0e-9_dp           ! Relative tolerances for each scalar
-      atol(:) = 1.0e-99_dp               ! Absolute tolerance for each scalar (floor value)
+      rtol(:) = 1.0e-1_dp           ! Relative tolerances for each scalar
+      atol(:) = 1.0e-20_dp               ! Absolute tolerance for each scalar (floor value)
 
       rwork(:) = 0.0_dp
       iwork(:) = 0
 
-      rwork(1) = 0.0               ! Critical T value (don't integrate past time here)
-      rwork(5) = 1.0e-99_dp              ! Initial starting timestep (start low, will adapt in DVODE)
+      rwork(1) = 0.0_dp               ! Critical T value (don't integrate past time here)
+      rwork(5) = 0.0_dp              ! Initial starting timestep (start low, will adapt in DVODE)
       rwork(6) = 0.0_dp       ! Maximum timestep
 
-      iwork(5) = 2               ! Max order required
+      iwork(5) = 0               ! Max order required
       iwork(6) = 100000               ! Max number of internal steps
       iwork(7) = 1                ! Number of error messages
 
@@ -130,10 +130,10 @@ contains
         stop
       end select
 
-      call check_con(n_sp,y(:),y_old(:),t_now,t_old,con)
-      if (con .eqv. .True.) then
-        exit
-      end if
+      ! call check_con(n_sp,y(:),y_old(:),t_now,t_old,con)
+      ! if (con .eqv. .True.) then
+      !   exit
+      ! end if
 
       ncall = ncall + 1
 

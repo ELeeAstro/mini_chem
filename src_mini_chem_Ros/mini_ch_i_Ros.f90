@@ -52,8 +52,8 @@ contains
     ! ***  parameters for the Rosenbrock-solver  ***
     ! -----------------------------------------
 
-    rtol(:) = 1.0e-2_dp
-    atol(:) = 1.0e-99_dp
+    rtol(:) = 1.0e-1_dp
+    atol(:) = 1.0e-20_dp
 
     nnzero = n_sp
 
@@ -67,8 +67,8 @@ contains
     rcntrl(:) = 0.0_dp
 
     rcntrl(1) = 0.0_dp
-    rcntrl(2) = 0.0_dp !t_end
-    rcntrl(3) = 1.0e-30_dp
+    rcntrl(2) = 1.0e-30_dp !t_end
+    rcntrl(3) = 0.0_dp
     rcntrl(4) = 0.2_dp
     rcntrl(5) = 6.0_dp
     rcntrl(6) = 0.1_dp
