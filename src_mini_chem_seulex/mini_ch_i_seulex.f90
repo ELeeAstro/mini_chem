@@ -41,7 +41,7 @@ contains
     allocate(Keq(n_reac), re_f(n_reac), re_r(n_reac))
 
     ! First find the reverse reaction coefficents (Keq)
-    call reverse_reactions(T_in, P_cgs)
+    call reverse_reactions(T_in)
     ! Find the forward, backward and net reaction rates
     call reaction_rates(T_in, P_cgs, nd_atm)
 
@@ -52,8 +52,8 @@ contains
     ! ***  parameters for the SEULEX-solver  ***
     ! -----------------------------------------
 
-    rtol = 1.0e-3_dp
-    atol = 1.0e-99_dp
+    rtol = 1.0e-1_dp
+    atol = 1.0e-20_dp
     itol = 0
     ijac = 1
     mljac = n_sp
@@ -99,7 +99,7 @@ contains
     ipar = 0
 
     t_now = 0.0_dp
-    dt_init = 1e-99_dp
+    dt_init = 0.0_dp
 
     ncall = 0
 
@@ -110,21 +110,21 @@ contains
 
       select case(network)
       case('HO')
-        call SEULEX(n_sp,RHS_update,1,t_now,y,t_end,dt_init, &
+        call SEULEX(n_sp,RHS_update,0,t_now,y,t_end,dt_init, &
           &                  rtol,atol,itol, &
           &                  jac_HO,ijac,mljac,mujac, &
           &                  mas_dummy,imas,mlmas,mumas, &
           &                  solout,iout, &
           &                  rwork,lrwork,iwork,liwork,rpar,ipar,idid)
       case('CHO')
-        call SEULEX(n_sp,RHS_update,1,t_now,y,t_end,dt_init, &
+        call SEULEX(n_sp,RHS_update,0,t_now,y,t_end,dt_init, &
           &                  rtol,atol,itol, &
           &                  jac_CHO,ijac,mljac,mujac, &
           &                  mas_dummy,imas,mlmas,mumas, &
           &                  solout,iout, &
           &                  rwork,lrwork,iwork,liwork,rpar,ipar,idid)
       case('NCHO')
-        call SEULEX(n_sp,RHS_update,1,t_now,y,t_end,dt_init, &
+        call SEULEX(n_sp,RHS_update,0,t_now,y,t_end,dt_init, &
           &                  rtol,atol,itol, &
           &                  jac_NCHO,ijac,mljac,mujac, &
           &                  mas_dummy,imas,mlmas,mumas, &
