@@ -5,7 +5,7 @@ import pickle
 
 filename = '../vulcan_benchmark_data/net-T1500KlogP7.0-NCHO-solar_hot_noHe.vul'
 
-ivmr = 2
+ivmr = 1
 with open(filename, 'rb') as handle:
   data = pickle.load(handle)
   time_V = data['variable']['t_time']

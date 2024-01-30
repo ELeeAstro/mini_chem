@@ -42,7 +42,7 @@ contains
     allocate(Keq(n_reac), re_f(n_reac), re_r(n_reac))
 
     ! First find the reverse reaction coefficents (Keq)
-    call reverse_reactions(T_in, P_cgs)
+    call reverse_reactions(T_in)
     ! Find the forward, backward and net reaction rates
     call reaction_rates(T_in, P_cgs, nd_atm)
 
@@ -61,23 +61,23 @@ contains
     if (use_stiff .eqv. .True.) then
       ! Problem is stiff (usual)
       ! mf = 21 - full jacobian matrix with jacobian save
-      mf = 22
+      mf = 21
       rworkdim = 22 +  9*n_sp + 2*n_sp**2
       iworkdim = 30 + n_sp
       allocate(rtol(n_sp), atol(n_sp), rwork(rworkdim), iwork(iworkdim))
 
       itol = 4
-      rtol(:) = 1.0e-9_dp           ! Relative tolerances for each scalar
-      atol(:) = 1.0e-99_dp               ! Absolute tolerance for each scalar (floor value)
+      rtol(:) = 1.0e-1_dp           ! Relative tolerances for each scalar
+      atol(:) = 1.0e-20_dp               ! Absolute tolerance for each scalar (floor value)
 
       rwork(:) = 0.0_dp
       iwork(:) = 0
 
-      rwork(1) = 0.0               ! Critical T value (don't integrate past time here)
-      rwork(5) = 1.0e-99_dp              ! Initial starting timestep (start low, will adapt in DVODE)
+      rwork(1) = 0.0_dp               ! Critical T value (don't integrate past time here)
+      rwork(5) = 0.0_dp              ! Initial starting timestep (start low, will adapt in DVODE)
       rwork(6) = 0.0_dp       ! Maximum timestep
 
-      iwork(5) = 2               ! Max order required
+      iwork(5) = 0               ! Max order required
       iwork(6) = 100000               ! Max number of internal steps
       iwork(7) = 1                ! Number of error messages
 
@@ -128,7 +128,7 @@ contains
         & istate, iopt, rwork, rworkdim, iwork, iworkdim, jac_CHO, mf, rpar, ipar)
       case('NCHO')
         call DVODE (RHS_update, n_sp, y, t_now, t_end, itol, rtol, atol, itask, &
-        & istate, iopt, rwork, rworkdim, iwork, iworkdim, jac_dummy, mf, rpar, ipar)
+        & istate, iopt, rwork, rworkdim, iwork, iworkdim, jac_NCHO, mf, rpar, ipar)
       case default
         print*, 'Invalid network provided: ', trim(network)
         stop
