@@ -1,10 +1,6 @@
 # for gfortran Compiler
 #===================
 
-LS_CONFIG  =  -DFULL_ALGEBRA
-BLAS=/Users/gl20y334/lapack-3.10.1/librefblas.a
-LAPACK=/Users/gl20y334/lapack-3.10.1/liblapack.a
-
 F90 = gfortran
 F90LINKER =  gfortran
 
@@ -13,7 +9,7 @@ F90LINKER =  gfortran
 #FFLAGS	= -Og -pipe -Wall -Wextra -g -fbacktrace
 
 #Serial flags
-FFLAGS  = -O2 -pipe $(LS_CONFIG)
+FFLAGS  = -O3 -pipe 
 
 #Parallel flags
 
@@ -35,28 +31,29 @@ FFLAGS  = -O2 -pipe $(LS_CONFIG)
 
 DEFS      =
 INCLUDES  =
-LFLAGS    = $(FFLAGS) 
+LFLAGS    = $(FFLAGS)
 
 OBJECTS = \
-LS_Solver.o \
-ROS_f90_Integrator.o \
+decsol.o \
+dc_decsol.o \
+ros4.o \
 mini_ch_precision.o \
 mini_ch_class.o \
 mini_ch_read_reac_list.o \
 mini_ch_chem.o \
-mini_ch_i_Ros.o \
+mini_ch_i_ros4.o \
 mini_ch_main.o
 
 
 # executable statement
-EXECS  = ../mini_chem_Ros
+EXECS  = ../mini_chem_ros4
 
 .SUFFIXES : .o .f90 .f .F90
 
-default: mini_chem_Ros
+default: mini_chem_mp
 
-mini_chem_Ros: $(OBJECTS)
-	$(F90LINKER) $(LFLAGS) $(OBJECTS) -o $(EXECS) $(LAPACK) $(BLAS)
+mini_chem_mp: $(OBJECTS)
+	$(F90LINKER) $(LFLAGS) $(OBJECTS) -o $(EXECS)
 #$(LAPACK) $(BLAS)
 
 clean:

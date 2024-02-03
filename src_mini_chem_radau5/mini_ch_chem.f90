@@ -32,7 +32,7 @@ contains
         k0 = re(i)%A0 * T**re(i)%B0 * exp(-re(i)%C0/T)
         kinf = re(i)%Ainf * T**re(i)%Binf * exp(-re(i)%Cinf/T)
 
-        re_f(i) = k0 / (1.0_dp + (k0 * nd_atm/kinf))
+        re_f(i) = k0 / (1.0_dp + ((k0 * nd_atm)/kinf))
 
         !print*, i, k0, kinf
       else if (re(i)%re_t == 4) then
@@ -112,7 +112,7 @@ contains
           ! print*, i, kf
 
         end if
-
+       
         re_f(i) = kf
 
       end if
@@ -123,10 +123,10 @@ contains
 
   end subroutine reaction_rates
 
-  subroutine reverse_reactions(T, P)
+  subroutine reverse_reactions(T)
     implicit none
 
-    real(dp), intent(in) :: T, P
+    real(dp), intent(in) :: T
 
     integer :: i, j
     real(dp) :: Tn2, Tn1, lnT, T2, T3, T4, Tr
@@ -182,9 +182,7 @@ contains
 
     end do
 
-
   end subroutine reverse_reactions
-
 
   subroutine check_con(n_sp, n_kp, n_k, t_now, t_old, con)
     implicit none

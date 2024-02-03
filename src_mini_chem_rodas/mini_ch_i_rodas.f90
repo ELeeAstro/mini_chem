@@ -1,19 +1,18 @@
-module mini_ch_i_Ros
+module mini_ch_i_rodas
   use mini_ch_precision
   use mini_ch_class
   use mini_ch_chem, only: reaction_rates, reverse_reactions, check_con
-  use ROS_f90_Integrator, only : INTEGRATE
   implicit none
 
   real(dp) :: nd_atm
 
   private
-  public ::  mini_ch_Ros, RHS_update, jac_dummy, mas_dummy, solout, &
-    & jac_HO, jac_CHO, jac_NCHO
+  public :: mini_ch_rodas, RHS_update, jac_dummy, mas_dummy, solout &
+  &, jac_HO, jac_CHO, jac_NCHO
 
 contains
 
-  subroutine mini_ch_Ros(T_in, P_in, t_end, VMR, network)
+  subroutine mini_ch_rodas(T_in, P_in, t_end, VMR, network)
     implicit none
 
     real(dp), intent(in) :: T_in, P_in, t_end
@@ -24,15 +23,16 @@ contains
     real(dp) :: P_cgs
 
     ! Time controls
-    real(dp) :: t_now,  t_old
+    real(dp) :: t_now,  t_old, dt_init
     logical :: con = .False.
 
-    ! Rosenbrock variables
-    integer :: ierr, nnzero
-    real(dp), dimension(n_sp) :: rtol, atol
+    ! seulex variables
     real(dp), dimension(n_sp) :: y, y_old
-    integer, dimension(20) :: icntrl, istatus
-    real(dp), dimension(20) :: rcntrl, rstatus
+    real(dp), allocatable, dimension(:) :: rwork
+    integer, allocatable, dimension(:) :: iwork
+    real(dp) :: rtol, atol
+    real(dp) :: rpar
+    integer :: ifcn, itol, ijac, idfx, mljac, mujac, imas, mlmas, mumas, iout, lrwork, liwork, ipar, idid
 
     !! Find the number density of the atmosphere
     P_cgs = P_in * 10.0_dp   ! Convert pascal to dyne cm-2
@@ -41,7 +41,7 @@ contains
     allocate(Keq(n_reac), re_f(n_reac), re_r(n_reac))
 
     ! First find the reverse reaction coefficents (Keq)
-    call reverse_reactions(T_in, P_cgs)
+    call reverse_reactions(T_in)
     ! Find the forward, backward and net reaction rates
     call reaction_rates(T_in, P_cgs, nd_atm)
 
@@ -49,37 +49,40 @@ contains
     y(:) = nd_atm * VMR(:)
 
     ! -----------------------------------------
-    ! ***  parameters for the Rosenbrock-solver  ***
+    ! ***  parameters for the RODAS-solver  ***
     ! -----------------------------------------
 
-    rtol(:) = 1.0e-1_dp
-    atol(:) = 1.0e-20_dp
+    rtol = 1.0e-1_dp
+    atol = 1.0e-20_dp
+    ifcn = 0
+    itol = 0
+    ijac = 1
+    idfx = 0
+    mljac = n_sp
+    mujac = n_sp
+    imas = 0
+    mlmas = n_sp
+    mumas = n_sp
+    iout = 0
+    idid = 0
 
-    nnzero = n_sp
+    ! Real work array
+    lrwork = n_sp*(n_sp+0+n_sp+14)+20
+    allocate(rwork(lrwork))
+    rwork(:) = 0.0_dp
 
-    icntrl(:) = 0
+    ! Integer work array
+    liwork = n_sp + 20
+    allocate(iwork(liwork))
+    iwork(:) = 0
 
-    icntrl(1) = 0
-    icntrl(2) = 0
-    icntrl(3) = 1 ! 1 - Ros2, 2 - Ros3, 3 - Ros4, 4 - Rodas3, 5 - Rodas4
-    icntrl(4) = 0
-
-    rcntrl(:) = 0.0_dp
-
-    rcntrl(1) = 0.0_dp
-    rcntrl(2) = 1.0e-30_dp !t_end
-    rcntrl(3) = 0.0_dp
-    rcntrl(4) = 0.2_dp
-    rcntrl(5) = 6.0_dp
-    rcntrl(6) = 0.1_dp
-    rcntrl(7) = 0.9_dp
-
-    istatus(:) = 0
-    rstatus(:) = 0.0_dp
-
-    ncall = 0
+    rpar = 0.0_dp
+    ipar = 0
 
     t_now = 0.0_dp
+    dt_init = 0.0_dp
+
+    ncall = 0
 
     do while((t_now < t_end))
 
@@ -88,26 +91,35 @@ contains
 
       select case(network)
       case('HO')
-        call INTEGRATE(t_now, t_end, n_sp, nnzero, y, rtol, atol, RHS_update, jac_HO,&
-          icntrl, rcntrl, istatus, rstatus, ierr )
+        call RODAS(n_sp,RHS_update,ifcn,t_now,y,t_end,dt_init, &
+          &                  rtol,atol,itol, &
+          &                  jac_HO,ijac,mljac,mujac,dfx_dummy,idfx, &
+          &                  mas_dummy,imas,mlmas,mumas, &
+          &                  solout,iout, &
+          &                  rwork,lrwork,iwork,liwork,rpar,ipar,idid)
       case('CHO')
-        call INTEGRATE(t_now, t_end, n_sp, nnzero, y, rtol, atol, RHS_update, jac_CHO,&
-          icntrl, rcntrl, istatus, rstatus, ierr )
+        call RODAS(n_sp,RHS_update,ifcn,t_now,y,t_end,dt_init, &
+          &                  rtol,atol,itol, &
+          &                  jac_CHO,ijac,mljac,mujac,dfx_dummy,idfx, &
+          &                  mas_dummy,imas,mlmas,mumas, &
+          &                  solout,iout, &
+          &                  rwork,lrwork,iwork,liwork,rpar,ipar,idid)
       case('NCHO')
-        call INTEGRATE(t_now, t_end, n_sp, nnzero, y, rtol, atol, RHS_update, jac_NCHO,&
-          icntrl, rcntrl, istatus, rstatus, ierr )
+        call RODAS(n_sp,RHS_update,ifcn,t_now,y,t_end,dt_init, &
+          &                  rtol,atol,itol, &
+          &                  jac_NCHO,ijac,mljac,mujac,dfx_dummy,idfx, &
+          &                  mas_dummy,imas,mlmas,mumas, &
+          &                  solout,iout, &
+          &                  rwork,lrwork,iwork,liwork,rpar,ipar,idid)
       case default
         print*, 'Invalid network provided: ', trim(network)
         stop
       end select
 
-      t_now = rstatus(1)
-      rcntrl(3) = rstatus(3)
-
-      call check_con(n_sp,y(:),y_old(:),t_now,t_old,con)
-      if (con .eqv. .True.) then
-        exit
-      end if
+      !call check_con(n_sp,y(:),y_old(:),t_now,t_old,con)
+      !if (con .eqv. .True.) then
+      !  exit
+      !end if
 
       ncall = ncall + 1
 
@@ -115,9 +127,9 @@ contains
 
     VMR(:) = y(:)/nd_atm
 
-    deallocate(Keq, re_r, re_f)
+    deallocate(rwork, iwork, Keq, re_r, re_f)
 
-  end subroutine mini_ch_Ros
+  end subroutine mini_ch_rodas
 
   subroutine RHS_update(NEQ, time, y, f, rpar, ipar)
     implicit none
@@ -207,10 +219,18 @@ contains
  
     end do
 
-    f(:) = (f1_pr(:) + f2_pr(:) + f3_pr(:) + f4_pr(:) + f5_pr(:)) + &
-      & (f1_re(:) + f2_re(:) + f3_re(:) + f4_re(:) + f5_re(:))
+    do i = 1, neq
+      f(i) = (f1_pr(i) + f2_pr(i) + f3_pr(i) + f4_pr(i) + f5_pr(i)) + &
+        & (f1_re(i) + f2_re(i) + f3_re(i) + f4_re(i) + f5_re(i))
+      !print*, i, f(i)
+    end do
 
   end subroutine RHS_update
+
+  subroutine dfx_dummy(N,X,Y,FX,RPAR,IPAR)
+    integer :: N, IPAR
+    double precision :: X,Y(N),FX(N),RPAR
+  end subroutine dfx_dummy
 
   subroutine jac_dummy(N,X,Y,DFY,LDFY,RPAR,IPAR)
     integer :: N,LDFY,IPAR
@@ -512,4 +532,4 @@ contains
     double precision :: XOLD, X, Y(N), CONT(LRC), RPAR
   end subroutine solout
 
-end module mini_ch_i_Ros
+end module mini_ch_i_rodas

@@ -2,7 +2,7 @@ program mini_chem_main
   use mini_ch_precision
   use mini_ch_class, only: g_sp
   use mini_ch_read_reac_list, only : read_react_list
-  use mini_ch_i_Ros, only : mini_ch_Ros
+  use mini_ch_i_radau5, only : mini_ch_radau5
   implicit none
 
   integer :: n, n_step, u_nml
@@ -46,8 +46,8 @@ program mini_chem_main
   print*, 'integrator: ', g_sp(:)%c, 'VMR sum'
   print*, 'IC: ', VMR_IC(:), sum(VMR_IC(:))
 
-  integrator = 'Ros'
-  open(newunit=u,file='outputs_Ros/'//trim(integrator)//'.txt',action='readwrite')
+  integrator = 'radau5'
+  open(newunit=u,file='outputs_radau5/'//trim(integrator)//'.txt',action='readwrite')
   write(u,*) 'n', 'time', g_sp(:)%c
   write(u,*) 0, 0.0, VMR_IC(:)
 
@@ -67,9 +67,9 @@ program mini_chem_main
     !! Scale VMR to 1
     VMR(:) = VMR(:)/sum(VMR(:))
 
-    ! Call Rosenbrock solvers
-    call mini_ch_Ros(T_in, P_in, t_step, VMR(:), network)
-    print*, 'Rosenbrock: ', VMR(:), sum(VMR(:))
+    ! Call radau5 - implicit Runge-Kutta method of order 5
+    call mini_ch_radau5(T_in, P_in, t_step, VMR(:), network)
+    print*, 'radau5: ', VMR(:), sum(VMR(:))
     write(u,*) n, t_now, VMR(:)
 
     !! Scale VMR to 1
