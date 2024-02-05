@@ -66,8 +66,8 @@ contains
       allocate(rtol(n_sp), atol(n_sp), rwork(rworkdim), iwork(iworkdim))
 
       itol = 4
-      rtol(:) = 1.0e-1_dp           ! Relative tolerances for each scalar
-      atol(:) = 1.0e-20_dp               ! Absolute tolerance for each scalar (floor value)
+      rtol(:) = 1.0e-2_dp           ! Relative tolerances for each scalar
+      atol(:) = 1.0e-99_dp               ! Absolute tolerance for each scalar (floor value)
 
       rwork(:) = 0.0_dp
       iwork(:) = 0

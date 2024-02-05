@@ -52,8 +52,8 @@ contains
     ! ***  parameters for the RODAS-solver  ***
     ! -----------------------------------------
 
-    rtol = 1.0e-1_dp
-    atol = 1.0e-20_dp
+    rtol = 1.0e-2_dp
+    atol = 1.0e-99_dp
     ifcn = 0
     itol = 0
     ijac = 1

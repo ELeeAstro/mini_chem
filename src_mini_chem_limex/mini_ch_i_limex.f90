@@ -1,18 +1,18 @@
-module mini_ch_i_dvode
+module mini_ch_i_limex
   use mini_ch_precision
   use mini_ch_class
-  use mini_ch_chem
+  use mini_ch_chem, only: reaction_rates, reverse_reactions, check_con
   implicit none
 
-  logical, parameter :: use_stiff = .True.
   real(dp) :: nd_atm
 
-  public ::  mini_ch_dvode, RHS_update, jac_dummy, &
-    & jac_HO, jac_CHO, jac_NCHO
+  private
+  public :: mini_ch_limex, RHS_update, jac_dummy, mas_dummy, solout &
+  &, jac_HO, jac_CHO, jac_NCHO
 
 contains
 
-  subroutine mini_ch_dvode(T_in, P_in, t_end, VMR, network)
+  subroutine mini_ch_limex(T_in, P_in, t_end, VMR, network)
     implicit none
 
     real(dp), intent(in) :: T_in, P_in, t_end
@@ -23,17 +23,16 @@ contains
     real(dp) :: P_cgs
 
     ! Time controls
-    real(dp) :: t_begin, t_now, t_old, t_goal
+    real(dp) :: t_now,  t_old, dt_init
     logical :: con = .False.
 
-    ! DVODE variables
-    real(dp), dimension(n_sp) :: y, y_old
-    real(dp), allocatable, dimension(:) :: rwork, rtol, atol
+    ! seulex variables
+    real(dp), dimension(n_sp) :: y, ys, y_old
+    real(dp), allocatable, dimension(:) :: rwork
     integer, allocatable, dimension(:) :: iwork
-    integer :: itol, itask, istate, iopt, mf
-    integer :: rworkdim, iworkdim
+    real(dp) :: rtol, atol
     real(dp) :: rpar
-    integer :: ipar
+    integer :: itol, ijac, mljac, mujac, imas, mlmas, mumas, iout, lrwork, liwork, ipar, idid
 
     !! Find the number density of the atmosphere
     P_cgs = P_in * 10.0_dp   ! Convert pascal to dyne cm-2
@@ -50,115 +49,71 @@ contains
     y(:) = nd_atm * VMR(:)
 
     ! -----------------------------------------
-    ! ***  parameters for the DVODE solver  ***
+    ! ***  parameters for the LIMEX-solver  ***
     ! -----------------------------------------
 
-    itask = 1
-    istate = 1
-    iopt = 1
+    rtol = 1.0e-1_dp
+    atol = 1.0e-20_dp
 
-    ! Method flag
-    if (use_stiff .eqv. .True.) then
-      ! Problem is stiff (usual)
-      ! mf = 21 - full jacobian matrix with jacobian save
-      mf = 21
-      rworkdim = 22 +  9*n_sp + 2*n_sp**2
-      iworkdim = 30 + n_sp
-      allocate(rtol(n_sp), atol(n_sp), rwork(rworkdim), iwork(iworkdim))
+    ! Real work array
+    lrwork = 5
+    allocate(ropt(lrwork))
+    ropt(:) = 0.0_dp
 
-      itol = 4
-      rtol(:) = 1.0e-2_dp           ! Relative tolerances for each scalar
-      atol(:) = 1.0e-99_dp               ! Absolute tolerance for each scalar (floor value)
 
-      rwork(:) = 0.0_dp
-      iwork(:) = 0
+    ! Integer work array
+    liwork = 30
+    allocate(iopt(liwork))
+    iopt(:) = 0
 
-      rwork(1) = 0.0_dp               ! Critical T value (don't integrate past time here)
-      rwork(5) = 0.0_dp              ! Initial starting timestep (start low, will adapt in DVODE)
-      rwork(6) = 0.0_dp       ! Maximum timestep
-
-      iwork(5) = 0               ! Max order required
-      iwork(6) = 100000               ! Max number of internal steps
-      iwork(7) = 1                ! Number of error messages
-
-    else
-      ! Problem is not too stiff (not typical)
-      ! mf = 11 - full jacobian matrix with jacobian save
-      mf = 11
-      rworkdim = 22 + 16*n_sp + 2*n_sp**2
-      iworkdim = 30 + n_sp
-      allocate(rtol(n_sp), atol(n_sp), rwork(rworkdim), iwork(iworkdim))
-      itol = 4
-      rtol(:) = 1.0e-3_dp
-      atol(:) = 1.0e-99_dp
-
-      rwork(1) = t_end
-
-      rwork(5:10) = 0.0_dp
-      iwork(5:10) = 0
-
-      rwork(5) = 1.0e-99_dp
-      rwork(6) = t_end
-      iwork(6) = 100000
-    end if
-
-    t_begin = 0.0_dp
-    t_now = t_begin
+    iopt(7) = 1
 
     rpar = 0.0_dp
     ipar = 0
 
-    ! Set the printing flag
-    ! 0 = no printing, 1 = printing
-    call xsetf(1)
+    t_now = 0.0_dp
+    dt_init = 0.0_dp
+    h = 1.0e-99_dp
 
     ncall = 0
 
-    do while (t_now < t_end)
+    do while((t_now < t_end))
 
       y_old(:) = y(:)
+      ys(:) = 0.0_dp
       t_old = t_now
 
       select case(network)
       case('HO')
-        call DVODE (RHS_update, n_sp, y, t_now, t_end, itol, rtol, atol, itask, &
-        & istate, iopt, rwork, rworkdim, iwork, iworkdim, jac_HO, mf, rpar, ipar)
+        call LIMEX(n_sp, RHS_update, jac_HO, t_now, t_end, y, ys, &
+        & rtol, atol, h, iopt, ropt, ipos, ifail)
       case('CHO')
-        call DVODE (RHS_update, n_sp, y, t_now, t_end, itol, rtol, atol, itask, &
-        & istate, iopt, rwork, rworkdim, iwork, iworkdim, jac_CHO, mf, rpar, ipar)
+        call LIMEX(n_sp, RHS_update, jac_CHO, t_now, t_end, y, ys, &
+        & rtol, atol, h, iopt, ropt, ipos, ifail)
       case('NCHO')
-        call DVODE (RHS_update, n_sp, y, t_now, t_end, itol, rtol, atol, itask, &
-        & istate, iopt, rwork, rworkdim, iwork, iworkdim, jac_NCHO, mf, rpar, ipar)
+        call LIMEX(n_sp, RHS_update, jac_NCHO, t_now, t_end, y, ys, &
+        & rtol, atol, h, iopt, ropt, ipos, ifail)
       case default
         print*, 'Invalid network provided: ', trim(network)
         stop
       end select
 
-      ! call check_con(n_sp,y(:),y_old(:),t_now,t_old,con)
-      ! if (con .eqv. .True.) then
-      !   exit
-      ! end if
+      !call check_con(n_sp,y(:),y_old(:),t_now,t_old,con)
+      !if (con .eqv. .True.) then
+      !  exit
+      !end if
 
       ncall = ncall + 1
-
-      if (mod(ncall,10) == 0) then
-        istate = 1
-      else if (istate == -1) then
-        istate = 2
-      else if (istate < -1) then
-        print*, istate
-        exit
-      end if
 
     end do
 
     VMR(:) = y(:)/nd_atm
 
-    deallocate(Keq, re_r, re_f, rtol, atol, rwork, iwork)
+    deallocate(rwork, iwork, Keq, re_r, re_f)
 
-  end subroutine mini_ch_dvode
+  end subroutine mini_ch_limex
 
-  subroutine RHS_update(NEQ, time, y, f, rpar, ipar)
+  subroutine RHS_update(NEQ, nz, t, y, f, b, ir, ic, FcnInfo )
     implicit none
 
     integer, intent(in) ::  NEQ
@@ -173,6 +128,8 @@ contains
     real(dp), dimension(n_reac) :: net_pr, net_re
     real(dp), dimension(NEQ) :: f1_pr, f2_pr, f3_pr, f4_pr, f5_pr
     real(dp), dimension(NEQ) :: f1_re, f2_re, f3_re, f4_re, f5_re
+
+    nz = NEQ*NEQ
 
     ! Calculate the rate of change of number density for all species [cm-3/s]
     ! this is the f vector
@@ -254,21 +211,17 @@ contains
 
   end subroutine RHS_update
 
-  subroutine jac_dummy (NEQ, X, Y, ML, MU, PD, NROWPD, RPAR, IPAR)
-    integer, intent(in) :: NEQ, ML, MU, NROWPD
-    real(dp), intent(in) :: X
-    real(dp), dimension(NEQ), intent(in) :: Y
-    real(dp), dimension(NROWPD, NEQ), intent(inout) :: PD
-    real(dp), intent(in) :: RPAR
-    integer, intent(in) :: IPAR
+  subroutine jac_dummy(N,X,Y,DFY,LDFY,RPAR,IPAR)
+    integer :: N,LDFY,IPAR
+    double precision :: X,Y(N),DFY(LDFY,N),RPAR
   end subroutine jac_dummy
 
-  subroutine jac_NCHO(N, X, Y, ML, MU, DFY, NROWPD)
+  subroutine jac_NCHO(N,X,Y,DFY,LDFY,RPAR,IPAR)
     implicit none
-    integer, intent(in) :: N, ML, MU, NROWPD
-    real(dp), intent(in) :: X
-    real(dp), dimension(N), intent(inout) :: y
-    real(dp), dimension(NROWPD, N), intent(out) :: DFY
+    integer, intent(in) :: N, LDFY, ipar
+    real(dp), intent(in) :: X, RPAR
+    real(dp), dimension(N), intent(in) :: Y
+    real(dp), dimension(LDFY, N),intent(out) :: DFY
 
     dfy(1,1) = -re_f(1)*y(2) - re_f(2)*y(5) - re_r(3)*y(4)
     dfy(1,2) = -re_f(1)*y(1) + re_f(3)*y(7)
@@ -421,12 +374,12 @@ contains
 
   end subroutine jac_NCHO
 
-  subroutine jac_CHO(N, X, Y, ML, MU, DFY, NROWPD, RPAR, IPAR)
+  subroutine jac_CHO(N,X,Y,DFY,LDFY,RPAR,IPAR)
     implicit none
-    integer, intent(in) :: N, ML, MU, NROWPD, ipar
+    integer, intent(in) :: N, LDFY, ipar
     real(dp), intent(in) :: X, RPAR
     real(dp), dimension(N), intent(in) :: Y
-    real(dp), dimension(NROWPD, N), intent(out) :: DFY
+    real(dp), dimension(LDFY, N),intent(out) :: DFY
 
     dfy(1,1) = -re_f(1)*y(2) - re_f(2)*y(5) - re_r(3)*y(4)
     dfy(1,2) = -re_f(1)*y(1) + re_f(3)*y(7)
@@ -513,12 +466,12 @@ contains
 
   end subroutine jac_CHO
 
-  subroutine jac_HO(N, X, Y, ML, MU, DFY, NROWPD, RPAR, IPAR)
+  subroutine jac_HO(N,X,Y,DFY,LDFY,RPAR,IPAR)
     implicit none
-    integer, intent(in) :: N, ML, MU, NROWPD, ipar
+    integer, intent(in) :: N, LDFY, ipar
     real(dp), intent(in) :: X, RPAR
     real(dp), dimension(N), intent(in) :: Y
-    real(dp), dimension(NROWPD, N), intent(out) :: DFY
+    real(dp), dimension(LDFY, N),intent(out) :: DFY
 
     dfy(1, 1) = -re_f(1)*y(2) - re_r(2)*y(4)
     dfy(1, 2) = -re_f(1)*y(1) + re_f(2)*y(5)
@@ -548,4 +501,14 @@ contains
 
   end subroutine jac_HO
 
-end module mini_ch_i_dvode
+  subroutine mas_dummy(N,AM,LMAS,RPAR,IPAR)
+    integer :: N, LMAS, IPAR
+    double precision :: AM(LMAS,N), RPAR
+  end subroutine mas_dummy
+
+  subroutine solout(NR,XOLD,X,Y,CONT,LRC,N,RPAR,IPAR,IRTRN)
+    integer :: NR, LRC, N, IPAR, IRTRN
+    double precision :: XOLD, X, Y(N), CONT(LRC), RPAR
+  end subroutine solout
+
+end module mini_ch_i_limex

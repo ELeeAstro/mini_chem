@@ -68,7 +68,7 @@ contains
 
       itol = 1
       rtol = 1.0e-3_dp           ! Relative tolerances for each scalar
-      atol = 1.0e-20_dp               ! Absolute tolerance for each scalar (floor value)
+      atol = 1.0e-99_dp               ! Absolute tolerance for each scalar (floor value)
 
       rwork(:) = 0.0_dp
       iwork(:) = 0
