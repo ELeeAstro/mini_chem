@@ -8,17 +8,15 @@ Mini-chem's NCHO network currently consists of only 12 species with 10 reactions
 
 These are the papers describing mini-chem methods so far: \
 Tsai et al. (2022) - A Mini-Chemical Scheme with Net Reactions for 3D GCMs I.: Thermochemical Kinetics - A&A Volume 664, id.A82, 16 pp. - arXiv:2204.04201 \
-Lee et al. (2023) - A Mini-Chemical Scheme with Net Reactions for 3D GCMs II.: 3D thermochemical modelling of WASP-39b and HD 189733b - A&A  Volume 672, id.A110, 13 pp. - arXiv: arXiv:2302.09525
+Lee et al. (2023) - A Mini-Chemical Scheme with Net Reactions for 3D GCMs II.: 3D thermochemical modelling of WASP-39b and HD 189733b - A&A Volume 672, id.A110, 13 pp. - arXiv: arXiv:2302.09525
 
 This repository contains the standalone version of mini-chem, containing the source code and testing modules for users to use for their own purposes.
 
-The src_mini_chem_seulex is the reccomended version for most purposes. 
-The src_mini_chem_dvode, src_mini_chem_dlsode and src_mini_chem_dlsodes contain dvode, dlsode and dlsodes solver standalone variants as an alternative. 
+The src_mini_chem_dvode is the recommended version for most purposes. 
+The src_mini_chem_seulex, src_mini_chem_dlsode and src_mini_chem_dlsodes contain seulex, dlsode and dlsodes solver standalone variants as an alternative. 
 These haven't been checked for threadsafe yet, so only use for non-OpenMP applications.
 
-Other directories are currently experimental
-
-NOTE: Integration of the network may take a long time for high pressures (> 10-20 bar) and high temperatures (> 1000 K), we suggest applying a CE scheme for those deep regions, which should be at CE anyway.
+Other directories are currently experimental.
 
 This code is in active development and aims to have continual improvements to stability and speed, please report bugs or improvements you find.
 
@@ -42,49 +40,62 @@ The namelist that describes the simulation set up:
 
 ### mini_chem_VMR
 
-1. VMR - initial VMR of each species (in the species order of the _sp file)
+1. VMR - initial VMR of each species (in the species order of the _sp file).
 
 ## Directories
 
-### src_mini_chem_seulex
-
-The standalone seulex version of mini_chem, reccomended for most applications. 
-
-### src_mini_chem_mp
-
-Experimental
-
 ### src_mini_chem_dvode
 
-Contains a standalone version using the dvode ODE solver (alternative)
+The standalone dvode version of mini_chem, recommended for most applications. 
 
 ### src_mini_chem_dlsode
 
-Contains a standalone version using the dlsode ODE solver (alternative)
+Contains a standalone version using the dlsode ODE solver (alternative).
 
 ### src_mini_chem_dlsodes
 
-Contains a standalone version using the dlsodes ODE solver (alternative)
+Contains a standalone version using the dlsodes ODE solver (alternative).
+
+### src_mini_chem_seulex
+
+Contains a standalone version using the seulex ODE solver (alternative).
+
+### src_mini_chem_radau5
+
+Contains a standalone version using the radau5 ODE solver (experimental).
+
+### src_mini_chem_rodas
+
+Contains a standalone version using the rodas ODE solver (experimental).
+
+### src_mini_chem_ros4
+
+Contains a standalone version using the ros4 ODE solver (experimental).
+
+### src_mini_chem_limex
+
+Contains a standalone version using the limex ODE solver (experimental).
+
+### outputs_*
+
+Contains the outputs and plotting scripts for the 0D test code.
 
 ### chem_data
 
-Mini-chem formatted data files for each network _sp contains the species data, _data contains the reaction network, 1x, 10x directories etc- contains the netrate tables in mini-chem format for that metallicity and C/O ratio
+Mini-chem formatted data files for each network _sp contains the species data, _data contains the reaction network, 1x, 10x directories etc- contains the netrate tables in mini-chem format for that metallicity and C/O ratio.
 
 ### jacobian_conversion
 
-A workspace for converting the Jacobian from VULCAN to a FORTRAN format - typically is required to be done manually. Feel free to e-mail if new Jacobians are required
+A workspace for converting the Jacobian from VULCAN python to the fortran format - typically is required to be done manually. Feel free to e-mail if new Jacobians are required.
 
 ### netrate_contour_plots
 
-Contains python code to produce contour plots of the net forward reaction rate tables
+Contains python code to produce contour plots of the net forward reaction rate tables.
 
 ### netrate_originals
 
-Original VULCAN formatted data for each kinetic network net reaction tables for different metallicity and C/O ratio - typically reformatted using the provided python script
+Original VULCAN formatted data for each kinetic network net reaction tables for different metallicity and C/O ratio - typically reformatted using the provided python script.
 
-### outputs, outputs_mp, outputs_dvode etc
-
-Where the output from running the code is produced and some python plotting routines.
 
 ### vulcan_benchmark_data
  
@@ -92,11 +103,12 @@ Contains some benchmarking data from VULCAN.
 
 ## Future updates
 
-TODO: Photochemistry and haze \
-Improve efficency of pairwise addition implimentation \
-Improve equilibrium condition detection
+TODO: mini-photochemistry. \
+Improve efficiency of pairwise addition implementation. \
+Improve equilibrium condition detection.
 
 ## Compiling
 
-The fortran code can be compiled by altering the makefiles in each src_ directory.
+The fortran code can be compiled by altering the makefiles in each src_ directory. 
+The executable is then in the main directory. 
 Compiled code can be removed by entering 'make clean'.
