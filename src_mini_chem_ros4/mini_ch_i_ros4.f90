@@ -52,7 +52,7 @@ contains
     ! ***  parameters for the ROS4-solver  ***
     ! -----------------------------------------
 
-    rtol = 1.0e-2_dp
+    rtol = 1.0e-3_dp
     atol = 1.0e-99_dp
     ifcn = 0
     itol = 0

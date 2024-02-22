@@ -12,8 +12,8 @@ Lee et al. (2023) - A Mini-Chemical Scheme with Net Reactions for 3D GCMs II.: 3
 
 This repository contains the standalone version of mini-chem, containing the source code and testing modules for users to use for their own purposes.
 
-The src_mini_chem_dvode is the recommended version for most purposes. 
-The src_mini_chem_seulex, src_mini_chem_dlsode and src_mini_chem_dlsodes contain seulex, dlsode and dlsodes solver standalone variants as an alternative. 
+The src_mini_chem_dlsode is the recommended version for most purposes. 
+The src_mini_chem_seulex and src_mini_chem_dvode contain seulex and dvode solver standalone variants as an alternative. 
 These haven't been checked for threadsafe yet, so only use for non-OpenMP applications.
 
 Other directories are currently experimental.
@@ -44,17 +44,17 @@ The namelist that describes the simulation set up:
 
 ## Directories
 
-### src_mini_chem_dvode
-
-The standalone dvode version of mini_chem, recommended for most applications. 
-
 ### src_mini_chem_dlsode
 
-Contains a standalone version using the dlsode ODE solver (alternative).
+Contains a standalone version using the dlsode ODE solver (recommended).
+
+### src_mini_chem_dvode
+
+Contains a standalone version using the dvode ODE solver (alternative).
 
 ### src_mini_chem_dlsodes
 
-Contains a standalone version using the dlsodes ODE solver (alternative).
+Contains a standalone version using the dlsodes ODE solver (experimental).
 
 ### src_mini_chem_seulex
 
