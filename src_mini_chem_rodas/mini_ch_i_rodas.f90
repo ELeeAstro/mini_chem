@@ -141,11 +141,11 @@ contains
     real(dp), intent(inout) :: rpar
     integer, intent(inout) :: ipar
 
-    integer :: i, k, j2, j3, j4, j5
+    integer :: i, k, j
     real(dp) :: msum, msum2, frate, rrate
     real(dp), dimension(n_reac) :: net_pr, net_re
-    real(dp), dimension(NEQ) :: f1_pr, f2_pr, f3_pr, f4_pr, f5_pr
-    real(dp), dimension(NEQ) :: f1_re, f2_re, f3_re, f4_re, f5_re
+    real(dp), dimension(NEQ) :: f_pr, f_re, t_pr, t_re
+    real(dp), dimension(NEQ) :: c_pr, c_re
 
     ! Calculate the rate of change of number density for all species [cm-3/s]
     ! this is the f vector
@@ -175,55 +175,41 @@ contains
       frate = msum * re_f(i)
       rrate = msum2 * re_r(i)
 
-      ! Find flux for products - regular addition
-      !f(re(i)%gi_pr(:)) = f(re(i)%gi_pr(:)) + frate - rrate
-      !f(re(i)%gi_re(:)) = f(re(i)%gi_re(:)) + rrate - frate
-
       net_pr(i) = frate - rrate
-      net_re(i) = rrate - frate
+      net_re(i) = -net_pr(i)
+
+      !! Perform the Kahan-Babushka-Neumaier compensation sum algorithm
+      ! This is slightly slower than peicewise addition for small timesteps, but faster for larger timesteps, 
+      ! and more general (should work for all networks)
+
+      !! Add the product rates
+      do j = 1, re(i)%n_pr
+        t_pr(re(i)%gi_pr(j)) = f_pr(re(i)%gi_pr(j)) + net_pr(i)
+        if (abs(f_pr(re(i)%gi_pr(j))) >= abs(net_pr(i))) then
+          c_pr(re(i)%gi_pr(j)) = c_pr(re(i)%gi_pr(j)) + (f_pr(re(i)%gi_pr(j)) - t_pr(re(i)%gi_pr(j))) + net_pr(i)
+        else
+          c_pr(re(i)%gi_pr(j)) = c_pr(re(i)%gi_pr(j)) + (net_pr(i) - t_pr(re(i)%gi_pr(j))) + f_pr(re(i)%gi_pr(j))
+        end if
+        f_pr(re(i)%gi_pr(j)) = t_pr(re(i)%gi_pr(j))
+      end do
+      f_pr(re(i)%gi_pr(:)) =  f_pr(re(i)%gi_pr(:)) + c_pr(re(i)%gi_pr(:))
+
+      !! Add the reactant rates
+      do j = 1, re(i)%n_re
+        t_re(re(i)%gi_re(j)) = f_re(re(i)%gi_re(j)) + net_re(i)
+        if (abs(f_re(re(i)%gi_re(j))) >= abs(net_re(i))) then
+          c_re(re(i)%gi_re(j)) = c_re(re(i)%gi_re(j)) + (f_re(re(i)%gi_re(j)) - t_re(re(i)%gi_re(j))) + net_re(i)
+        else
+          c_re(re(i)%gi_re(j)) = c_re(re(i)%gi_re(j)) + (net_re(i) - t_re(re(i)%gi_re(j))) + f_re(re(i)%gi_re(j))
+        end if
+        f_re(re(i)%gi_re(j)) = t_re(re(i)%gi_re(j))
+      end do
+      f_re(re(i)%gi_re(:)) =  f_re(re(i)%gi_re(:)) + c_re(re(i)%gi_re(:))
 
     end do
 
-    !! Perform peicewise summation over the arrays
-    !! here we just assume split into 5 blocks since n_reac is quite small
-    f1_pr(:) = 0.0_dp
-    f2_pr(:) = 0.0_dp
-    f3_pr(:) = 0.0_dp
-    f4_pr(:) = 0.0_dp
-    f5_pr(:) = 0.0_dp
-
-    f1_re(:) = 0.0_dp
-    f2_re(:) = 0.0_dp
-    f3_re(:) = 0.0_dp
-    f4_re(:) = 0.0_dp
-    f5_re(:) = 0.0_dp
-
-    do i = 1, n_reac/5
-
-      j2 = i + n_reac/5
-      j3 = i + 2*n_reac/5
-      j4 = i + 3*n_reac/5
-      j5 = i + 4*n_reac/5
-
-      f1_pr(re(i)%gi_pr(:)) = f1_pr(re(i)%gi_pr(:)) + net_pr(i)
-      f2_pr(re(j2)%gi_pr(:)) = f2_pr(re(j2)%gi_pr(:)) + net_pr(j2)
-      f3_pr(re(j3)%gi_pr(:)) = f3_pr(re(j3)%gi_pr(:)) + net_pr(j3)
-      f4_pr(re(j4)%gi_pr(:)) = f4_pr(re(j4)%gi_pr(:)) + net_pr(j4)
-      f5_pr(re(j5)%gi_pr(:)) = f5_pr(re(j5)%gi_pr(:)) + net_pr(j5)     
-     
-      f1_re(re(i)%gi_re(:)) = f1_re(re(i)%gi_re(:)) + net_re(i)
-      f2_re(re(j2)%gi_re(:)) = f2_re(re(j2)%gi_re(:)) + net_re(j2)
-      f3_re(re(j3)%gi_re(:)) = f3_re(re(j3)%gi_re(:)) + net_re(j3)
-      f4_re(re(j4)%gi_re(:)) = f4_re(re(j4)%gi_re(:)) + net_re(j4)
-      f5_re(re(j5)%gi_re(:)) = f5_re(re(j5)%gi_re(:)) + net_re(j5)
- 
-    end do
-
-    do i = 1, neq
-      f(i) = (f1_pr(i) + f2_pr(i) + f3_pr(i) + f4_pr(i) + f5_pr(i)) + &
-        & (f1_re(i) + f2_re(i) + f3_re(i) + f4_re(i) + f5_re(i))
-      !print*, i, f(i)
-    end do
+    !! Sum product and reactant rates to get net rate for species
+    f(:) = f_pr(:) + f_re(:)
 
   end subroutine RHS_update
 

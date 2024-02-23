@@ -12,11 +12,16 @@ Lee et al. (2023) - A Mini-Chemical Scheme with Net Reactions for 3D GCMs II.: 3
 
 This repository contains the standalone version of mini-chem, containing the source code and testing modules for users to use for their own purposes.
 
-The src_mini_chem_dlsode is the recommended version for most purposes. 
+The src_mini_chem_dlsode is the recommended version (and typically fastest) for most purposes. 
 The src_mini_chem_seulex and src_mini_chem_dvode contain seulex and dvode solver standalone variants as an alternative. 
-These haven't been checked for threadsafe yet, so only use for non-OpenMP applications.
+These haven't been checked for threadsafe yet, so only use for non-OpenMP applications, MPI only codes should be ok.
 
 Other directories are currently experimental.
+
+All codes use the [Kahan-Babushka-Neumaier](https://en.wikipedia.org/wiki/Kahan_summation_algorithm) compensated sum algorithm to calculate the sum of the forward and backward rates of each species.
+This is generally slower than the (in previous versions) [Pairwise Summation](https://en.wikipedia.org/wiki/Pairwise_summation) method for small timesteps, but is more accurate and actually faster when longer timesteps are considered.
+This behavior is also seen in the [FRECKLL](https://ui.adsabs.harvard.edu/abs/2022arXiv220911203A/abstract) kinetic code, which uses a 'distillation' technique to reduce the condition number.
+Naive summation typically produces the wrong answer, showing the importance of considering more accurate summation methods.
 
 This code is in active development and aims to have continual improvements to stability and speed, please report bugs or improvements you find.
 
@@ -104,7 +109,6 @@ Contains some benchmarking data from VULCAN.
 ## Future updates
 
 TODO: mini-photochemistry. \
-Improve efficiency of pairwise addition implementation. \
 Improve equilibrium condition detection.
 
 ## Compiling
