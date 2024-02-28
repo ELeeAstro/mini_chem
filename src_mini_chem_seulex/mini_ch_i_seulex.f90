@@ -24,7 +24,6 @@ contains
 
     ! Time controls
     real(dp) :: t_now,  t_old, dt_init
-    logical :: con = .False.
 
     ! seulex variables
     real(dp), dimension(n_sp) :: y, y_old
@@ -168,7 +167,11 @@ contains
 
     ! Calculate the rate of change of number density for all species [cm-3/s]
     ! this is the f vector
-
+    f_pr(:) = 0.0_dp
+    c_pr(:) = 0.0_dp
+    f_re(:) = 0.0_dp
+    c_re(:) = 0.0_dp
+    
     ! Loop through reactions add rates to the f array
     do i = 1, n_reac
       ! Do the forward and backward flux calculation for each speices in the reaction
