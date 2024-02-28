@@ -18,9 +18,15 @@ FFLAGS  = -O3 -pipe
 #F90LINKER = ifx
 
 #FFLAGS   = -O0 -g -traceback -fpp -prec-div -fp-model source -fpe0 -ipo
-#FFLAGS    = -O3 -fpp -fp-model source -ipo
+#FFLAGS   = -O3 -fpp -fp-model source -ipo
 
 # for nvfortran compiler
+#====================
+
+#F90 = nvfortran
+#F90LINKER = nvfortran
+
+#FFLAGS    = -O1
 
 #====================
 
