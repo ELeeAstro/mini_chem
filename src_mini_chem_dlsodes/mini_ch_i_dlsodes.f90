@@ -23,8 +23,7 @@ contains
     real(dp) :: P_cgs
 
     ! Time controls
-    real(dp) :: t_begin, t_now, t_old, t_goal
-    logical :: con = .False.
+    real(dp) :: t_begin, t_now, t_old
 
     ! DLSODES variables
     real(dp) :: rtol, atol
@@ -160,6 +159,10 @@ contains
 
     ! Calculate the rate of change of number density for all species [cm-3/s]
     ! this is the f vector
+    f_pr(:) = 0.0_dp
+    c_pr(:) = 0.0_dp
+    f_re(:) = 0.0_dp
+    c_re(:) = 0.0_dp
 
     ! Loop through reactions add rates to the f array
     do i = 1, n_reac

@@ -9,25 +9,16 @@ F90LINKER =  gfortran
 #FFLAGS	= -Og -pipe -Wall -Wextra -g -fbacktrace
 
 #Serial flags
-#FFLAGS  = -O3 -pipe
+FFLAGS  = -O3 -pipe -std=legacy
 
-#Parallel flags
-FFLAGS	= -O3 -pipe -std=legacy
-
-# for ifort Compiler
+# for intel Compiler
 #====================
-
-#F90 = ifort
-#F90LINKER = ifort
-
-## OR
 
 #F90 = ifx
 #F90LINKER = ifx
 
 #FFLAGS   = -O0 -g -traceback -fpp -prec-div -fp-model source -fpe0 -ipo
-#FFLAGS    = -O0 -g -traceback -xHost -fpp -fp-model source -qopenmp -ipo
-#FFLAGS    = -O3 -qopenmp -fpp -fp-model source -ipo
+#FFLAGS    = -O3 -fpp -fp-model source -ipo
 
 #====================
 

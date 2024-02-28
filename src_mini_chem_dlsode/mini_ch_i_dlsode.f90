@@ -23,8 +23,7 @@ contains
     real(dp) :: P_cgs
 
     ! Time controls
-    real(dp) :: t_begin, t_now, t_old, t_goal
-    logical :: con = .False.
+    real(dp) :: t_begin, t_now, t_old
 
     ! DLSODE variables
     real(dp), dimension(n_sp) :: y, y_old

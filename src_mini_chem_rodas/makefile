@@ -11,21 +11,14 @@ F90LINKER =  gfortran
 #Serial flags
 FFLAGS  = -O3 -pipe 
 
-#Parallel flags
-
-#FFLAGS	= -O0 -g -fbacktrace -pipe -fopenmp
-#FFLAGS	= -O3 -pipe -fopenmp
-
-
-# for ifort Compiler
+# for intel Compiler
 #====================
 
-#F90 = ifort
-#F90LINKER = ifort
+#F90 = ifx
+#F90LINKER = ifx
 
 #FFLAGS   = -O0 -g -traceback -fpp -prec-div -fp-model source -fpe0 -ipo
-#FFLAGS    = -O0 -g -traceback -xHost -fpp -fp-model source -qopenmp -ipo
-#FFLAGS    = -O3 -qopenmp -fpp -fp-model source -ipo
+#FFLAGS    = -O3 -fpp -fp-model source -ipo
 
 #====================
 
@@ -50,9 +43,9 @@ EXECS  = ../mini_chem_rodas
 
 .SUFFIXES : .o .f90 .f .F90
 
-default: mini_chem_mp
+default: mini_chem
 
-mini_chem_mp: $(OBJECTS)
+mini_chem: $(OBJECTS)
 	$(F90LINKER) $(LFLAGS) $(OBJECTS) -o $(EXECS)
 #$(LAPACK) $(BLAS)
 
