@@ -25,7 +25,7 @@ Naive summation typically produces the wrong answer, showing the importance of c
 
 This code is in active development and aims to have continual improvements to stability and speed, please report bugs or improvements you find.
 
-NOTE: The rodas solver may not work with intel compilers, it is unclear why. 
+All source code has been tested with the gcc (gfortran) and intel (ifx) compilers. Other compilers are under testing.
 
 ## mini_chem.nml
 
@@ -116,3 +116,4 @@ Improve equilibrium condition detection.
 The fortran code can be compiled by altering the makefiles in each src_ directory. 
 The executable is then in the main directory. 
 Compiled code can be removed by entering 'make clean'.
+You will need to clean and recompile if any changes to the source code are made.
