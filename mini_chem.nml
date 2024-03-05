@@ -5,9 +5,9 @@
 network = 'NCHO'
 
 T_in = 1500.0
-P_in = 1.0e6
+P_in = 1.0e5
 
-t_step = 60
+t_step = 2000
 n_step = 50000
 
 n_sp = 12
