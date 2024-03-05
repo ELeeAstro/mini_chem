@@ -1,9 +1,12 @@
 import numpy as np
 import matplotlib.pylab as plt
 import pickle
+from PIL import Image
 
 
-filename = '../vulcan_benchmark_data/net-T1500KlogP7.0-NCHO-solar_hot_noHe.vul'
+#filename = '../vulcan_benchmark_data/net-T1500KlogP7.0-NCHO-solar_hot_noHe.vul'
+filename = '../vulcan_benchmark_data/net-T1500KlogP6.0-NCHO-solar_hot_noHe.vul'
+plot_name  = 'T1500KlogP6.0-NCHO'
 
 ivmr = 1
 with open(filename, 'rb') as handle:
@@ -36,4 +39,8 @@ plt.legend()
 plt.yscale('log')
 plt.xscale('log')
 
-plt.show()
+plt.savefig( plot_name + '.png')
+plot = Image.open( plot_name + '.png')
+plot.show()
+
+        
