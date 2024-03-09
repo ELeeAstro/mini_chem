@@ -4,7 +4,7 @@
 
 Mini-chem is a kinetic chemistry network solver primarily for gas giant atmospheric modelling, pared down from the large chemical networks.
 This makes use of 'net forward reaction tables', which reduce the number of reactions and species required to be evolved in the ODE solvers significantly.
-Mini-chem's NCHO network currently consists of only 12 species with 10 reactions, making it a lightweight and easy to couple network to large scale 3D GCM models, or other models of interest (such as 1D or 2D kinetic modelling efforts).
+Mini-chem's NCHO network currently consists of only 12 species with 10 forward reactions (for 20 total including reversed reactions), making it a lightweight and easy to couple network to large scale 3D GCM models, or other models of interest (such as 1D or 2D kinetic modelling efforts).
 
 These are the papers describing mini-chem methods so far: \
 Tsai et al. (2022) - A Mini-Chemical Scheme with Net Reactions for 3D GCMs I.: Thermochemical Kinetics - A&A Volume 664, id.A82, 16 pp. - arXiv:2204.04201 \
