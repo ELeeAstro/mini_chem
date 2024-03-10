@@ -42,10 +42,11 @@ opkda1.o \
 opkdmain.o \
 mini_ch_precision.o \
 mini_ch_class.o \
+mini_ch_ce_interp.o \
 mini_ch_read_reac_list.o \
 mini_ch_chem.o \
 mini_ch_i_dlsodes.o \
-mini_ch_main.o \
+main.o \
 
 # executable statement
 EXECS  = ../mini_chem_dlsodes

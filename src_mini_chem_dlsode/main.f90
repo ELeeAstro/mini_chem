@@ -1,8 +1,9 @@
 program mini_chem_main
   use mini_ch_precision
   use mini_ch_class, only: g_sp
+  use mini_ch_ce_interp, only : interp_ce_table
   use mini_ch_read_reac_list, only : read_react_list
-  use mini_ch_i_dvode, only : mini_ch_dvode
+  use mini_ch_i_dlsode, only : mini_ch_dlsode
   implicit none
 
   integer :: n, n_step, u_nml
@@ -10,6 +11,7 @@ program mini_chem_main
   real(dp) :: P_in
   real(dp) :: t_step, t_now
   integer :: n_sp
+  real(dp) :: mu
   real(dp), allocatable, dimension(:) :: VMR, VMR_IC
   character(len=200) :: data_file, sp_file, network,  net_dir, met
 
@@ -37,21 +39,25 @@ program mini_chem_main
   ! Initial time
   t_now = 0.0_dp
 
+  ! Give intial conditions to VMR array
+  if (CE_IC .eqv. .True.) then
+    call interp_ce_table(n_sp, T_in, P_in, VMR_IC(:), mu, IC_file)
+  end if
+
   ! Read the reaction and species list
   call read_react_list(data_file, sp_file, net_dir, met)
 
   ! Save the inital conditions to file
   ! Rescale IC to 1
   VMR_IC(:) = VMR_IC(:)/sum(VMR_IC(:))
-  print*, 'integrator: ', g_sp(:)%c, 'VMR sum'
+  print*, 'integrator: ', g_sp(:)%c, ' He', ' VMR sum'
   print*, 'IC: ', VMR_IC(:), sum(VMR_IC(:))
 
-  integrator = 'dvode'
-  open(newunit=u,file='outputs_dvode/'//trim(integrator)//'.txt',action='readwrite')
-  write(u,*) 'n', 'time', g_sp(:)%c
+  integrator = 'dlsode'
+  open(newunit=u,file='outputs_dlsode/'//trim(integrator)//'.txt',action='readwrite')
+  write(u,*) 'n', 'time', g_sp(:)%c, ' He'
   write(u,*) 0, 0.0, VMR_IC(:)
 
-  ! Give intial conditions to VMR array
   VMR(:) = VMR_IC(:)
  
   !! Do time marching loop
@@ -67,9 +73,9 @@ program mini_chem_main
     !! Scale VMR to 1
     VMR(:) = VMR(:)/sum(VMR(:))
 
-    ! Call dvode - BDF method
-    call mini_ch_dvode(T_in, P_in, t_step, VMR(:), network)
-    print*, 'dvode: ', VMR(:), sum(VMR(:))
+    ! Call dlsode - bdf method - don't send He to integrator so dimensions are n_sp-1
+    call mini_ch_dlsode(T_in, P_in, t_step, VMR(1:n_sp-1), network)
+    print*, 'dlsode: ', VMR(:), sum(VMR(:))
     write(u,*) n, t_now, VMR(:)
 
     !! Scale VMR to 1
