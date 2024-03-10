@@ -37,15 +37,18 @@ The namelist that describes the simulation set up:
 2. T_in - input temperature [K]
 3. P_in - input pressure [Pa]
 4. t_step - timestep [s]
-4. n_step - number of steps
-5. data_file - path to _data file
-6. sp_file - path to _sp file
-7. net_dir - path to net reaction files
-8. met - metallicity of net reaction tables
+5. n_step - number of steps
+6. n_sp - number of species (NCHO = 13 including He)
+7. data_file - path to _data file
+8. sp_file - path to _sp file
+9. net_dir - path to net reaction files
+10. met - metallicity of net reaction tables
 
 ### mini_chem_VMR
 
-1. VMR - initial VMR of each species (in the species order of the _sp file).
+1. CE_IC - True or False, interpolate T_in and P_in to CE table in IC file for each mini-chem species.
+2. IC_file - Location of initial condition CE file (typically in chem_data/IC).
+3. VMR - initial VMR of each species (in the species order of the _sp file).
 
 ## Directories
 
@@ -88,6 +91,7 @@ Contains the outputs and plotting scripts for the 0D test code.
 ### chem_data
 
 Mini-chem formatted data files for each network _sp contains the species data, _data contains the reaction network, 1x, 10x directories etc- contains the netrate tables in mini-chem format for that metallicity and C/O ratio.
+IC directory contains chemical equilibrium tables calculated using FastChem for use in the ce interpolation routine, typically used for initial conditions in the GCM. 
 
 ### jacobian_conversion
 
@@ -100,7 +104,6 @@ Contains python code to produce contour plots of the net forward reaction rate t
 ### netrate_originals
 
 Original VULCAN formatted data for each kinetic network net reaction tables for different metallicity and C/O ratio - typically reformatted using the provided python script.
-
 
 ### vulcan_benchmark_data
  
@@ -117,3 +120,27 @@ The fortran code can be compiled by altering the makefiles in each src_ director
 The executable is then in the main directory. 
 Compiled code can be removed by entering 'make clean'.
 You will need to clean and recompile if any changes to the source code are made.
+
+
+## Coupling guide to GCM and other models
+
+The main.f90 file in each src directory gives an idea of how to interface with mini-chem. Copy the mini_*.f90 and integrator source files into your GCM compilation systems (main.f90 is not needed), then use the mini_ch_ce_interp, mini_ch_i_* and read_react_list modules into your GCM physics routine (see main.f90 for example of this).
+Typically, three main subroutines are called for mini-chem operation.
+
+call interp_ce_table(n_sp, T_in, P_in, VMR_IC(:), mu, IC_file)
+
+This takes in a table file and interpolates the T and P to find the VMR and molecular weight [g mol-1] at that temperature and pressure. This is useful for initial conditions, or running a CE scheme or forcing ce if mini-chem fails at certain points.
+
+call read_react_list(data_file, sp_file, net_dir, met)
+
+Reads the reaction list network (see namelist file for examples) - basically set these file paths inside the GCM and call this routine (only) once before the first mini-chem call.
+
+call mini_ch_dlsode(T_in, P_in, t_step, VMR(1:n_sp-1), network)
+
+Is the main mini-chem call, takes in a temperature [K], pressure [Pa], time step and current VMR values and network (e.g. 'NCHO'). Call this routine for each GCM cell to perform the kinetic chemistry for that cell. This is usually not called every timestep, but every X times (e.g. 12 hour timesteps or whatever is best for your simulation). 
+
+NOTE: GCM tracers must be in the same order as the _sp file!! i.e. OH must be the first tracer (or passed into mini-chem in VMR index 1 and He the last tracer.)
+So you would call, mini-chem like:
+
+call mini_ch_dlsode(T(i,j,k), P(i,j,k), t_step, q(i,j,k,1:n_sp-1), network)
+
