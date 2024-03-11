@@ -43,7 +43,7 @@ module mini_ch_ce_interp
     lT_in = log10(T_in)
 
     ! Find upper and lower T and P triplet indexes
-    call locate(P_t, nP, P_in, i_p2)
+    call locate(P_t, nP, P_in/1e5_dp, i_p2)
     i_p1 = i_p2 - 1
     i_p3 = i_p2 + 1
 
