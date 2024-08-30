@@ -1,5 +1,7 @@
 # Mini-chem
 
+NOTE: This code is in active development and aims to have continual improvements to stability and speed, please report bugs or improvements you find.
+
 ## Thermochemical miniature kinetics chemistry module
 
 Mini-chem is a kinetic chemistry network solver primarily for gas giant atmospheric modelling, pared down from the large chemical networks.
@@ -22,8 +24,6 @@ All codes use the [Kahan-Babushka-Neumaier](https://en.wikipedia.org/wiki/Kahan_
 This is generally slower than the (in previous versions) [Pairwise Summation](https://en.wikipedia.org/wiki/Pairwise_summation) method for small timesteps, but is more accurate and actually faster when longer timesteps are considered.
 This behavior is also seen in the [FRECKLL](https://ui.adsabs.harvard.edu/abs/2022arXiv220911203A/abstract) kinetic code, which uses a 'distillation' technique to reduce the condition number.
 Naive summation typically produces the wrong answer, showing the importance of considering more accurate summation methods.
-
-This code is in active development and aims to have continual improvements to stability and speed, please report bugs or improvements you find.
 
 All source code has been tested with the gcc (gfortran) and intel (ifx) compilers. Other compilers are under testing.
 
@@ -140,6 +140,7 @@ call mini_ch_dlsode(T_in, P_in, t_step, VMR(1:n_sp-1), network)
 Is the main mini-chem call, takes in a temperature [K], pressure [Pa], time step and current VMR values and network (e.g. 'NCHO'). Call this routine for each GCM cell to perform the kinetic chemistry for that cell. This is usually not called every timestep, but every X times (e.g. 12 hour timesteps or whatever is best for your simulation). 
 
 NOTE: GCM tracers must be in the same order as the _sp file!! i.e. OH must be the first tracer (or passed into mini-chem in VMR index 1 and He the last tracer.)
+Helium is assumed to be a passive tracer, so is not passed to mini-chem.
 So you would call, mini-chem like:
 
 call mini_ch_dlsode(T(i,j,k), P(i,j,k), t_step, q(i,j,k,1:n_sp-1), network)

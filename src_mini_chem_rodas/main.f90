@@ -59,7 +59,7 @@ program mini_chem_main
   write(u,*) 0, 0.0, VMR_IC(:)
 
   ! Give intial conditions to VMR array
-  VMR(:) = VMR_IC(:)
+  VMR(:) = max(VMR_IC(:),1e-30_dp)
  
   !! Do time marching loop
   ! - this loop emulates what a call to the model is like in the GCM
@@ -72,7 +72,7 @@ program mini_chem_main
     print*, n, n_step, t_now
 
     !! Scale VMR to 1
-    VMR(:) = VMR(:)/sum(VMR(:))
+    VMR(:) = max(VMR(:)/sum(VMR(:)),1e-30_dp)
 
     ! Call rodas - Rosenbrock method - don't send He to integrator so dimensions are n_sp-1
     call mini_ch_rodas(T_in, P_in, t_step, VMR(1:n_sp-1), network)
@@ -80,7 +80,7 @@ program mini_chem_main
     write(u,*) n, t_now, VMR(:)
 
     !! Scale VMR to 1
-    VMR(:) = VMR(:)/sum(VMR(:))
+    VMR(:) = max(VMR(:)/sum(VMR(:)),1e-30_dp)
 
   end do
 

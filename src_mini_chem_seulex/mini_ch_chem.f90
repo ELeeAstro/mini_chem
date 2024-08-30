@@ -25,14 +25,14 @@ contains
 
       if (re(i)%re_t == 2) then
         ! Two body reaction
-        re_f(i) = re(i)%A * T**re(i)%B * exp(-re(i)%C/T)
+        kf = re(i)%A * T**re(i)%B * exp(-re(i)%C/T)
 
       else if (re(i)%re_t == 3) then
         ! Three body reaction
         k0 = re(i)%A0 * T**re(i)%B0 * exp(-re(i)%C0/T)
         kinf = re(i)%Ainf * T**re(i)%Binf * exp(-re(i)%Cinf/T)
 
-        re_f(i) = k0 / (1.0_dp + ((k0 * nd_atm)/kinf))
+        kf = k0 / (1.0_dp + ((k0 * nd_atm)/kinf))
 
         !print*, i, k0, kinf
       else if (re(i)%re_t == 4) then
@@ -112,10 +112,11 @@ contains
           ! print*, i, kf
 
         end if
-       
-        re_f(i) = kf
-
+      
       end if
+
+      !! Limit for very small rates
+      re_f(i) = max(kf,1e-99_dp)
 
       re_r(i) = re_f(i)/Keq(i) * ((kb * T)/P0)**(re(i)%dmu)
 

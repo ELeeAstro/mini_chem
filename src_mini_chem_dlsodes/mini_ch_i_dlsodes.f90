@@ -44,8 +44,8 @@ contains
     ! Find the forward, backward and net reaction rates
     call reaction_rates(T_in, P_cgs, nd_atm)
 
-    !! Find initial number density of all species from VMR
-    y(:) = nd_atm * VMR(:)
+    !! Pass VMR to y array
+    y(:) = VMR(:)
 
     ! -----------------------------------------
     ! ***  parameters for the DLSODES solver  ***
@@ -67,7 +67,7 @@ contains
 
       itol = 1
       rtol = 1.0e-3_dp           ! Relative tolerances for each scalar
-      atol = 1.0e-99_dp               ! Absolute tolerance for each scalar (floor value)
+      atol = 1.0e-30_dp               ! Absolute tolerance for each scalar (floor value)
 
       rwork(:) = 0.0_dp
       iwork(:) = 0
@@ -84,7 +84,7 @@ contains
       allocate(rwork(rworkdim), iwork(iworkdim))
       itol = 4
       rtol = 1.0e-3_dp
-      atol = 1.0e-99_dp
+      atol = 1.0e-30_dp
 
     end if
 
@@ -135,7 +135,8 @@ contains
 
     end do
 
-    VMR(:) = y(:)/nd_atm
+    !! Pass y to VMR array
+    VMR(:) = y(:)
 
     deallocate(Keq, re_r, re_f, rwork, iwork)
 
@@ -156,6 +157,9 @@ contains
     real(dp), dimension(n_reac) :: net_pr, net_re
     real(dp), dimension(NEQ) :: f_pr, f_re, t_pr, t_re
     real(dp), dimension(NEQ) :: c_pr, c_re
+
+    !! Convert VMR to number density for rate calculations
+    y(:) = y(:) * nd_atm
 
     ! Calculate the rate of change of number density for all species [cm-3/s]
     ! this is the f vector
@@ -224,6 +228,10 @@ contains
 
     !! Sum product and reactant rates to get net rate for species
     f(:) = f_pr(:) + f_re(:)
+
+    !! Convert rates and number density to VMR for integration
+    f(:) = f(:)/nd_atm
+    y(:) = y(:)/nd_atm
 
   end subroutine RHS_update
 

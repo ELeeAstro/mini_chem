@@ -6,7 +6,7 @@ from PIL import Image
 
 filename = '../vulcan_benchmark_data/net-T1500KlogP7.0-NCHO-solar_hot_noHe.vul'
 
-ivmr = 1
+ivmr = 2
 with open(filename, 'rb') as handle:
   data = pickle.load(handle)
   time_V = data['variable']['t_time']

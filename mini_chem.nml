@@ -22,7 +22,7 @@ met = '1x'
 &mini_chem_VMR
 
 CE_IC = .False.
-IC_file = 'chem_data/IC/mini_chem_IC_FastChem_100x.txt' 
+IC_file = 'chem_data/IC/mini_chem_IC_FastChem_1x.txt' 
 
 !VMR_IC = 0.0, 0.8, 0.0, 0.0, 0.2, 0.0
 !VMR_IC = 0.0, 0.8, 0.0, 0.0, 0.1, 0.0, 0.1, 0.0, 0.0, 0.0

@@ -45,9 +45,6 @@ contains
     ! Find the forward, backward and net reaction rates
     call reaction_rates(T_in, P_cgs, nd_atm)
 
-    !! Find initial number density of all species from VMR
-    y(:) = nd_atm * VMR(:)
-
     ! -----------------------------------------
     ! ***  parameters for the DVODE solver  ***
     ! -----------------------------------------
@@ -67,7 +64,7 @@ contains
 
       itol = 4
       rtol(:) = 1.0e-3_dp           ! Relative tolerances for each scalar
-      atol(:) = 1.0e-99_dp               ! Absolute tolerance for each scalar (floor value)
+      atol(:) = 1.0e-30_dp               ! Absolute tolerance for each scalar (floor value)
 
       rwork(:) = 0.0_dp
       iwork(:) = 0
@@ -89,7 +86,7 @@ contains
       allocate(rtol(n_sp), atol(n_sp), rwork(rworkdim), iwork(iworkdim))
       itol = 4
       rtol(:) = 1.0e-3_dp
-      atol(:) = 1.0e-99_dp
+      atol(:) = 1.0e-30_dp
 
       rwork(1) = t_end
 
@@ -112,6 +109,9 @@ contains
     call xsetf(1)
 
     ncall = 0
+
+    !! Pass VMR to y array
+    y(:) = VMR(:)
 
     do while (t_now < t_end)
 
@@ -151,7 +151,8 @@ contains
 
     end do
 
-    VMR(:) = y(:)/nd_atm
+    !! Pass y to VMR array
+    VMR(:) = y(:)
 
     deallocate(Keq, re_r, re_f, rtol, atol, rwork, iwork)
 
@@ -172,6 +173,9 @@ contains
     real(dp), dimension(n_reac) :: net_pr, net_re
     real(dp), dimension(NEQ) :: f_pr, f_re, t_pr, t_re
     real(dp), dimension(NEQ) :: c_pr, c_re
+
+    !! Convert VMR to number density for rate calculations
+    y(:) = y(:) * nd_atm
 
     ! Calculate the rate of change of number density for all species [cm-3/s]
     ! this is the f vector
@@ -241,6 +245,10 @@ contains
     !! Sum product and reactant rates to get net rate for species
     f(:) = f_pr(:) + f_re(:)
 
+    !! Convert rates and number density to VMR for integration
+    f(:) = f(:)/nd_atm
+    y(:) = y(:)/nd_atm
+
   end subroutine RHS_update
 
   subroutine jac_dummy (NEQ, X, Y, ML, MU, PD, NROWPD, RPAR, IPAR)
@@ -258,6 +266,9 @@ contains
     real(dp), intent(in) :: X
     real(dp), dimension(N), intent(inout) :: y
     real(dp), dimension(NROWPD, N), intent(out) :: DFY
+
+    !! Convert to real number density for Jacobian calculations
+    y(:) = y(:) * nd_atm
 
     dfy(1,1) = -re_f(1)*y(2) - re_f(2)*y(5) - re_r(3)*y(4)
     dfy(1,2) = -re_f(1)*y(1) + re_f(3)*y(7)
@@ -408,14 +419,20 @@ contains
     dfy(12,11) = 0.0_dp
     dfy(12,12) = -re_r(9)*y(2)**3 - re_r(10)*y(3)
 
+    !! Return y to VMR
+    y(:) = y(:)/nd_atm
+
   end subroutine jac_NCHO
 
   subroutine jac_CHO(N, X, Y, ML, MU, DFY, NROWPD, RPAR, IPAR)
     implicit none
     integer, intent(in) :: N, ML, MU, NROWPD, ipar
     real(dp), intent(in) :: X, RPAR
-    real(dp), dimension(N), intent(in) :: Y
+    real(dp), dimension(N), intent(inout) :: Y
     real(dp), dimension(NROWPD, N), intent(out) :: DFY
+
+    !! Convert to real number density for Jacobian calculations
+    y(:) = y(:) * nd_atm
 
     dfy(1,1) = -re_f(1)*y(2) - re_f(2)*y(5) - re_r(3)*y(4)
     dfy(1,2) = -re_f(1)*y(1) + re_f(3)*y(7)
@@ -500,14 +517,20 @@ contains
     dfy(9,8) = 2.0_dp*re_f(6)*y(8) + re_f(7)*y(5)
     dfy(9,9) = -re_r(6)*y(2)**3 - re_r(7)*y(3)
 
+    !! Return y to VMR
+    y(:) = y(:)/nd_atm
+
   end subroutine jac_CHO
 
   subroutine jac_HO(N, X, Y, ML, MU, DFY, NROWPD, RPAR, IPAR)
     implicit none
     integer, intent(in) :: N, ML, MU, NROWPD, ipar
     real(dp), intent(in) :: X, RPAR
-    real(dp), dimension(N), intent(in) :: Y
+    real(dp), dimension(N), intent(inout) :: Y
     real(dp), dimension(NROWPD, N), intent(out) :: DFY
+
+    !! Convert to real number density for Jacobian calculations
+    y(:) = y(:) * nd_atm
 
     dfy(1, 1) = -re_f(1)*y(2) - re_r(2)*y(4)
     dfy(1, 2) = -re_f(1)*y(1) + re_f(2)*y(5)
@@ -534,6 +557,9 @@ contains
     dfy(5, 3) = 0.0_dp
     dfy(5, 4) = re_r(2)*y(1)
     dfy(5, 5) = -re_f(2)*y(2)
+
+    !! Return y to VMR
+    y(:) = y(:)/nd_atm
 
   end subroutine jac_HO
 
