@@ -89,6 +89,16 @@ contains
           iT1 = iT2 - 1
           iT3 = iT2 + 1
 
+          if (iT1 < 1) then
+            iT1 = 1
+            iT2 = 2
+            iT3 = 3
+          else if (iT3 > re(i)%nT) then
+            iT1 = re(i)%nT - 2
+            iT2 = re(i)%nT - 1
+            iT3 = re(i)%nT
+          end if
+
           lkf(1) = re(i)%lkf(iT1,iP1)
           lkf(2) = re(i)%lkf(iT1,iP2)
           lkf(3) = re(i)%lkf(iT1,iP3)
