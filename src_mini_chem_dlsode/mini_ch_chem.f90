@@ -124,7 +124,7 @@ contains
       end if
 
       !! Limit forward rate for very small values
-      re_f(i) = max(kf,1e-99_dp)
+      re_f(i) = kf
 
       re_r(i) = re_f(i)/Keq(i) * ((kb * T)/P0)**(re(i)%dmu)
 

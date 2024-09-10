@@ -60,7 +60,7 @@ contains
         do j = 1,  re(i)%nT
           do k = 1, re(i)%nP
             read(u2,*) re(i)%kf(j,k)
-            re(i)%kf(j,k) = max(re(i)%kf(j,k),1.0e-99_dp)
+            re(i)%kf(j,k) = max(re(i)%kf(j,k),1.0e-199_dp)
           end do
         end do
         re(i)%lkf(:,:) = log10(re(i)%kf(:,:))
