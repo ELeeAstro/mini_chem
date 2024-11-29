@@ -26,8 +26,9 @@ contains
     real(dp) :: t_begin, t_now, t_old
 
     ! DLSODE variables
+    real(dp) :: rtol, atol
     real(dp), dimension(n_sp) :: y, y_old
-    real(dp), allocatable, dimension(:) :: rwork, rtol, atol
+    real(dp), allocatable, dimension(:) :: rwork
     integer, allocatable, dimension(:) :: iwork
     integer :: itol, itask, istate, iopt, mf
     integer :: rworkdim, iworkdim
@@ -59,11 +60,11 @@ contains
       mf = 21
       rworkdim = 22 +  9*n_sp + n_sp**2
       iworkdim = 20 + n_sp
-      allocate(rtol(n_sp), atol(n_sp), rwork(rworkdim), iwork(iworkdim))
+      allocate(rwork(rworkdim), iwork(iworkdim))
 
-      itol = 4
-      rtol(:) = 1.0e-3_dp           ! Relative tolerances for each scalar
-      atol(:) = 1.0e-30_dp               ! Absolute tolerance for each scalar (floor value)
+      itol = 1
+      rtol = 1.0e-3_dp           ! Relative tolerances for each scalar
+      atol = 1.0e-30_dp               ! Absolute tolerance for each scalar (floor value)
 
       rwork(:) = 0.0_dp
       iwork(:) = 0
@@ -82,10 +83,10 @@ contains
       mf = 11
       rworkdim = 22 + 16*n_sp + 2*n_sp**2
       iworkdim = 30 + n_sp
-      allocate(rtol(n_sp), atol(n_sp), rwork(rworkdim), iwork(iworkdim))
-      itol = 4
-      rtol(:) = 1.0e-3_dp
-      atol(:) = 1.0e-30_dp
+      allocate(rwork(rworkdim), iwork(iworkdim))
+      itol = 1
+      rtol = 1.0e-3_dp
+      atol = 1.0e-30_dp
 
       rwork(1) = t_end
 
@@ -150,7 +151,7 @@ contains
     !! Pass y to VMR array
     VMR(:) = y(:)
 
-    deallocate(Keq, re_r, re_f, rtol, atol, rwork, iwork)
+    deallocate(Keq, re_r, re_f, rwork, iwork)
 
   end subroutine mini_ch_dlsode
 
@@ -247,6 +248,7 @@ contains
   end subroutine RHS_update
 
   subroutine jac_dummy (NEQ, X, Y, ML, MU, PD, NROWPD)
+    implicit none
     integer, intent(in) :: NEQ, ML, MU, NROWPD
     real(dp), intent(in) :: X
     real(dp), dimension(NEQ), intent(inout) :: Y
