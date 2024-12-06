@@ -1,4 +1,4 @@
-module mini_ch_i_dlsode
+module mini_ch_i_dlsode_photo
   use mini_ch_precision
   use mini_ch_class
   use mini_ch_chem
@@ -7,12 +7,12 @@ module mini_ch_i_dlsode
   logical, parameter :: use_stiff = .True.
   real(dp) :: nd_atm
 
-  public ::  mini_ch_dlsode, RHS_update, jac_dummy, &
+  public ::  mini_ch_dlsode_photo, RHS_update, jac_dummy, &
     & jac_HO, jac_CHO, jac_NCHO
 
 contains
 
-  subroutine mini_ch_dlsode(T_in, P_in, t_end, VMR, nwl, a_flux, network)
+  subroutine mini_ch_dlsode_photo(T_in, P_in, t_end, VMR, nwl, a_flux, network)
     implicit none
 
     integer, intent(in) :: nwl
@@ -156,7 +156,7 @@ contains
 
     deallocate(Keq, re_r, re_f, rwork, iwork)
 
-  end subroutine mini_ch_dlsode
+  end subroutine mini_ch_dlsode_photo
 
   subroutine RHS_update(NEQ, time, y, f, rpar, ipar)
     implicit none
@@ -561,4 +561,4 @@ contains
 
   end subroutine jac_HO
 
-end module mini_ch_i_dlsode
+end module mini_ch_i_dlsode_photo
