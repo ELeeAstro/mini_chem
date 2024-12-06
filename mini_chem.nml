@@ -12,7 +12,7 @@ n_step = 100000
 
 n_sp = 13
 
-data_file = 'chem_data/mini_chem_data_NCHO.txt'
+data_file = 'chem_data/mini_chem_data_NCHO_photo.txt'
 sp_file = 'chem_data/mini_chem_sp_NCHO.txt'
 net_dir = 'chem_data/1x/'
 met = '1x'
@@ -27,6 +27,30 @@ IC_file = 'chem_data/IC/mini_chem_IC_FastChem_1x.txt'
 !VMR_IC = 0.0, 0.8, 0.0, 0.0, 0.2, 0.0
 !VMR_IC = 0.0, 0.8, 0.0, 0.0, 0.1, 0.0, 0.1, 0.0, 0.0, 0.0
 VMR_IC =  0.0, 0.9975, 0.001074, 0.0, 0.0, 0.0, 0., 0.00059024, 0, 0.00014159, 0.0, 0.0, 0.0
+
+
+/
+
+&mini_chem_photo
+
+
+network = 'NCHO'
+
+nlay = 100
+
+t_step = 60
+n_step = 10000
+
+n_sp = 13
+
+data_file = 'chem_data/mini_chem_data_NCHO_photo.txt'
+sp_file = 'chem_data/mini_chem_sp_NCHO.txt'
+net_dir = 'chem_data/1x/'
+met = '1x'
+
+IC_file = 'chem_data/IC/mini_chem_IC_FastChem_1x.txt' 
+
+stellar_file = 'chem_data/stellar/HD_189733.txt'
 
 
 /
