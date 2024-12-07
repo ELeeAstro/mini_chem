@@ -50,7 +50,7 @@ met = '1x'
 
 IC_file = 'chem_data/IC/mini_chem_IC_FastChem_1x.txt' 
 
-stellar_file = 'chem_data/stellar/HD_189733.txt'
+stellar_file = 'chem_data/stellar/sflux-HD189_Moses11.txt'
 
 
 /

@@ -53,7 +53,7 @@ module mini_ch_class
   real(dp), allocatable, dimension(:) :: re_f, re_r
 
   integer :: nwl
-  real(dp), allocatable, dimension(:) :: wl_grid
+  real(dp), allocatable, dimension(:) :: wl_grid, s_flux
   real(dp), allocatable, dimension(:,:) :: a_flux
   !$omp threadprivate(Keq, re_f, re_r)
 
@@ -85,6 +85,41 @@ contains
     idx = jl
 
   end subroutine locate
+
+  subroutine linear_interp(xval, x1, x2, y1, y2, yval)
+    implicit none
+
+    real(kind=dp), intent(in) :: xval, y1, y2, x1, x2
+    real(kind=dp), intent(out) :: yval
+    real(kind=dp) :: norm
+
+    if (x1 >= x2) then
+      print*, 'Error in linear_interp: x1 >= x2 - STOPPING', x1, x2
+      stop
+    end if
+
+    norm = 1.0_dp / (x2 - x1)
+
+    yval = (y1 * (x2 - xval) + y2 * (xval - x1)) * norm
+
+  end subroutine linear_interp
+
+  ! Perform linear interpolation in log10 space
+  subroutine linear_log_interp(xval, x1, x2, y1, y2, yval)
+    implicit none
+
+    real(dp), intent(in) :: xval, y1, y2, x1, x2
+    real(dp) :: lxval, ly1, ly2, lx1, lx2
+    real(dp), intent(out) :: yval
+    real(dp) :: norm
+
+    ly1 = log10(y1); ly2 = log10(y2)
+
+    norm = 1.0_dp / log10(x2/x1)
+
+    yval = 10.0_dp**((ly1 * log10(x2/xval) + ly2 * log10(xval/x1)) * norm)
+
+  end subroutine linear_log_interp
 
   subroutine bilinear_interp(xval, yval, x1, x2, y1, y2, a11, a21, a12, a22, aval)
     implicit none

@@ -3,7 +3,7 @@ program mini_chem_main
   use mini_ch_class, only: g_sp
   use mini_ch_ce_interp, only : interp_ce_table
   use mini_ch_init, only : read_react_list, init_photochem
-  use mini_ch_i_dlsode_photo, only : mini_ch_dlsode_photo
+  use mini_ch_i_dlsode_photo, only : mini_ch_dlsode_photo, mini_ch_actinic_flux
   implicit none
 
   integer :: n, n_step, u_nml
@@ -129,7 +129,8 @@ program mini_chem_main
       VMR(i,:) = max(VMR(i,:)/sum(VMR(i,:)),1e-30_dp)
     end do
 
-    !! Calculate the actintic flux in the column
+    !! Calculate the actinic flux in the column
+    !call mini_ch_actinic_flux(nlay, Tl(:), pl(:), pe(:), VMR(:,:))
 
     ! Call dlsode - bdf method - don't send He to integrator so dimensions are n_sp-1
     do i = 1, nlay

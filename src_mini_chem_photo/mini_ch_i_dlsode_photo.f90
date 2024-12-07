@@ -8,7 +8,7 @@ module mini_ch_i_dlsode_photo
   real(dp) :: nd_atm
 
   public ::  mini_ch_dlsode_photo, RHS_update, jac_dummy, &
-    & jac_HO, jac_CHO, jac_NCHO
+    & jac_HO, jac_CHO, jac_NCHO, mini_ch_actinic_flux
 
 contains
 
@@ -248,6 +248,11 @@ contains
     y(:) = y(:)/nd_atm
  
   end subroutine RHS_update
+
+
+  subroutine mini_ch_actinic_flux()
+    implicit none
+  end subroutine mini_ch_actinic_flux
 
   subroutine jac_dummy (NEQ, X, Y, ML, MU, PD, NROWPD)
     implicit none

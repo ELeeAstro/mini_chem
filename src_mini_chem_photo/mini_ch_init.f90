@@ -156,8 +156,10 @@ contains
     real(dp), intent(in) :: dbin1, dbin2, dbin_12trans, wl_s, wl_e
     character(len=200), intent(in) :: stellar_file
 
-    integer :: i, n1, n2
+    integer :: i, n1, n2, u, nlines, io
+    integer :: idx, idx1
     real(dp) :: wl_now
+    real(dp), allocatable, dimension(:) :: wl_f, flx_f
 
     !! First calculate wavelength grid for photochemistry calculations
     !! We follow the vulcan method, splitting the range into 2 parts, one at width dbin1 and dbin2
@@ -204,12 +206,65 @@ contains
     !! Convert nm to cm for integration purposes
     wl_grid(:) = wl_grid(:)*1e-7_dp
 
-    !! Allocate actinic flux array
-    allocate(a_flux(nlay,nwl))
+    !! Allocate actinic flux array and stellar flux
+    allocate(a_flux(nlay,nwl), s_flux(nwl))
 
     !! Read in stellar flux file and interpolate to wavelength grid
     !! Scale flux to distance and radius of planet
 
+    open(newunit=u,file=trim(stellar_file),status='old',action='read',form='formatted')
+
+    ! Read header
+    read(u,*)
+
+    ! Find number of lines in file
+    nlines = 0
+    do
+      read(u,*,iostat=io)
+      if (io /= 0) then 
+        exit
+      end if
+      nlines = nlines + 1
+    end do
+
+    ! Allocate values for stellar flux file
+    allocate(wl_f(nlines),flx_f(nlines)) 
+    
+    ! Rewind file
+    rewind(u)
+    ! Read header again
+    read(u,*)
+
+    ! Read file data
+    do i = 1, nlines
+      read(u,*) wl_f(i), flx_f(i)
+      !print*, i, wl_f(i), flx_f(i)
+    end do
+    wl_f(:) = wl_f(:)*1e-7_dp
+
+    close(u)
+
+
+    ! Now we must interpolate the file to the decided wavelength grid
+    do i = 1, nwl
+
+      call locate(wl_f(:), nlines, wl_grid(i), idx)
+
+      if (idx < 1) then
+        s_flux(i) = 0.0_dp
+      else if (idx >= nwl) then
+        s_flux(i) = 0.0_dp
+      else
+        idx1 = idx + 1
+        call linear_log_interp(wl_grid(i), wl_f(idx), wl_f(idx1), flx_f(idx), flx_f(idx1), s_flux(i))
+      end if
+
+      !print*, i, wl_grid(i)*1e7_dp, s_flux(i)
+    end do
+
+
+    !! Now we must read in photochemical cross sections for each species and interpolate as
+    !! well as calculate Rayleigh scattering for each species
 
   end subroutine init_photochem
 
