@@ -7,12 +7,12 @@ module mini_ch_chem
 
 contains
 
-  subroutine reaction_rates(T, P, nd_atm, nwl, a_flux)
+  subroutine reaction_rates(T, P, nd_atm, nwl, wl, a_flux)
     implicit none
 
     integer, intent(in) :: nwl
     real(dp), intent(in) :: T, P, nd_atm
-    real(dp), dimension(nwl), intent(in) :: a_flux
+    real(dp), dimension(nwl), intent(in) :: a_flux, wl
 
     integer :: i, iT1, iT2, iT3, iP1, iP2, iP3
     real(dp) :: k0, kinf
@@ -128,9 +128,7 @@ contains
       case(5)
 
         ! Calculate photochemical dissociation rate given the actinic flux at each wavelength
-
-
-        kf = 0.0_dp
+        kf = trapz(wl(:),a_flux(:)*g_sp(re(i)%gi_re(1))%xsec(:))
 
       case default
 
@@ -142,7 +140,7 @@ contains
       re_f(i) = kf
 
       if (re(i)%re_t == 5) then
-        ! Photodissocsiation is irreversible
+        ! Photodissociation is irreversible
         re_r(i) = 0.0_dp
       else 
         re_r(i) = re_f(i)/Keq(i) * ((kb * T)/P0)**(re(i)%dmu)

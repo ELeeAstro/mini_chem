@@ -29,6 +29,10 @@ module mini_ch_class
     character(len=20) :: c
     real(dp) :: mw, nd
     real(dp), allocatable, dimension(:) :: a_l, a_h
+
+    real(dp) :: thresh
+    real(dp), allocatable, dimension(:) :: ph_xsec, Ray_xsec
+
   end type species
 
   real(dp), parameter :: kb = 1.380649e-16_dp
@@ -45,6 +49,7 @@ module mini_ch_class
 
   real(dp), allocatable, dimension(:) :: Keq
   real(dp), allocatable, dimension(:) :: re_f, re_r
+  real(dp), allocatable, dimension(:) :: wl_grid
   !$omp threadprivate(Keq, re_f, re_r)
 
 contains
@@ -158,5 +163,18 @@ contains
     end if
 
   end subroutine bezier_interp
+
+  pure function trapz(x, y) result(r)
+    !! Calculates the integral of an array y with respect to x using the trapezoid
+    !! approximation. Note that the mesh spacing of x does not have to be uniform.
+    real(kind=dp), intent(in)  :: x(:)         !! Variable x
+    real(kind=dp), intent(in)  :: y(size(x))   !! Function y(x)
+    real(kind=dp)              :: r            !! Integral ∫y(x)·dx
+
+    ! Integrate using the trapezoidal rule
+    associate(n => size(x))
+      r = sum((y(1+1:n-0) + y(1+0:n-1))*(x(1+1:n-0) - x(1+0:n-1)))/2.0_dp
+    end associate
+  end function trapz
 
 end module mini_ch_class

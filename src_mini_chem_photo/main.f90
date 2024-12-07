@@ -1,8 +1,8 @@
 program mini_chem_main
   use mini_ch_precision
-  use mini_ch_class, only: g_sp
+  use mini_ch_class, only: g_sp, wl_grid
   use mini_ch_ce_interp, only : interp_ce_table
-  use mini_ch_read_reac_list, only : read_react_list
+  use mini_ch_read_reac_list, only : read_react_list, init_photochem
   use mini_ch_i_dlsode_photo, only : mini_ch_dlsode_photo
   implicit none
 
@@ -24,6 +24,8 @@ program mini_chem_main
 
   integer :: nwl
   character(len=200) :: stellar_file
+  real(dp) :: dbin1, dbin2, dbin_12trans, wl_s, wl_e
+  real(dp), allocatable, dimension(:) :: wl
   real(dp), allocatable, dimension(:,:) :: a_flux
 
   namelist /mini_chem_photo/ t_step, n_step, n_sp, data_file, sp_file, network, net_dir, met, &
@@ -109,10 +111,21 @@ program mini_chem_main
     VMR(i,:) = VMR_IC(i,:)
   end do
 
-  nwl = 1000
+  dbin1 = 0.1_dp  ! the uniform bin width < dbin_12trans (nm)
+  dbin2 = 2.0_dp   ! the uniform bin width > dbin_12trans (nm)
+  dbin_12trans = 240.0_dp 
+  wl_s = 0.1_dp  ! Start wavelength
+  wl_e = 206.6_dp ! End wavelength
+
+  ! Initialise photochemistry - reads stellar flux, calculates wavelength grid and interpolates cross-sections
+  call init_photochem(dbin1, dbin2, dbin_12trans, wl_s, wl_e, stellar_file, nwl)
+
+  print*, wl_grid(:)
+
+  stop
+
   allocate(a_flux(nlay,nwl))
-  a_flux(:,:) = 0.0_dp
- 
+  a_flux(:,:) = 1.0e2_dp
 
   ! Initial time
   t_now = 0.0_dp

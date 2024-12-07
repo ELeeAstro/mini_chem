@@ -12,13 +12,13 @@ module mini_ch_i_dlsode_photo
 
 contains
 
-  subroutine mini_ch_dlsode_photo(T_in, P_in, t_end, VMR, nwl, a_flux, network)
+  subroutine mini_ch_dlsode_photo(T_in, P_in, t_end, VMR, nwl, wl, a_flux, network)
     implicit none
 
     integer, intent(in) :: nwl
     real(dp), intent(in) :: T_in, P_in, t_end
     real(dp), dimension(n_sp), intent(inout) :: VMR
-    real(dp), dimension(nwl), intent(in) :: a_flux
+    real(dp), dimension(nwl), intent(in) :: wl, a_flux
     character(len=200), intent(in) :: network
 
     integer :: ncall
@@ -45,7 +45,7 @@ contains
     call reverse_reactions(T_in)
     
     ! Find the forward, backward and net reaction rates
-    call reaction_rates(T_in, P_cgs, nd_atm, nwl, a_flux)
+    call reaction_rates(T_in, P_cgs, nd_atm, nwl, wl, a_flux)
 
     ! -----------------------------------------
     ! ***  parameters for the DLSODE solver  ***
@@ -60,7 +60,7 @@ contains
       ! Problem is stiff (usual)
       ! mf = 21 - full jacobian matrix with jacobian save
       ! mf = 22 - internal calculated jacobian
-      mf = 21
+      mf = 22
       rworkdim = 22 +  9*n_sp + n_sp**2
       iworkdim = 20 + n_sp
       allocate(rwork(rworkdim), iwork(iworkdim))
@@ -127,7 +127,7 @@ contains
         & istate, iopt, rwork, rworkdim, iwork, iworkdim, jac_CHO, mf)
       case('NCHO')
         call DLSODE (RHS_update, n_sp, y, t_now, t_end, itol, rtol, atol, itask, &
-        & istate, iopt, rwork, rworkdim, iwork, iworkdim, jac_NCHO, mf)
+        & istate, iopt, rwork, rworkdim, iwork, iworkdim, jac_dummy, mf)
       case default
         print*, 'Invalid network provided: ', trim(network)
         stop

@@ -1,7 +1,10 @@
-module mini_ch_read_reac_list
+module mini_ch_init
   use mini_ch_precision
   use mini_ch_class
   implicit none
+
+  public :: read_react_list, init_photochem
+  !private ::
 
 contains
 
@@ -146,5 +149,11 @@ contains
 
   end subroutine read_react_list
 
+  subroutine init_photochem(dbin1, dbin2, dbin_12trans, wl_s, wl_e, stellar_file, nwl)
+    implicit none
 
-end module mini_ch_read_reac_list
+    integer, intent(out) :: nwl
+
+  end subroutine init_photochem
+
+end module mini_ch_init
