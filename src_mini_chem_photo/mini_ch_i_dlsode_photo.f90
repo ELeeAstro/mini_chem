@@ -12,13 +12,12 @@ module mini_ch_i_dlsode_photo
 
 contains
 
-  subroutine mini_ch_dlsode_photo(T_in, P_in, t_end, VMR, nwl, wl, a_flux, network)
+  subroutine mini_ch_dlsode_photo(ilay, T_in, P_in, t_end, VMR, network)
     implicit none
 
-    integer, intent(in) :: nwl
+    integer, intent(in) :: ilay
     real(dp), intent(in) :: T_in, P_in, t_end
     real(dp), dimension(n_sp), intent(inout) :: VMR
-    real(dp), dimension(nwl), intent(in) :: wl, a_flux
     character(len=200), intent(in) :: network
 
     integer :: ncall
@@ -45,7 +44,7 @@ contains
     call reverse_reactions(T_in)
     
     ! Find the forward, backward and net reaction rates
-    call reaction_rates(T_in, P_cgs, nd_atm, nwl, wl, a_flux)
+    call reaction_rates(T_in, P_cgs, nd_atm, ilay)
 
     ! -----------------------------------------
     ! ***  parameters for the DLSODE solver  ***

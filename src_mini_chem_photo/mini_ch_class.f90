@@ -37,6 +37,8 @@ module mini_ch_class
 
   real(dp), parameter :: kb = 1.380649e-16_dp
   real(dp), parameter :: R = 8.31446261815324e7_dp
+  real(dp), parameter :: c_s = 2.99792458e10_dp
+  real(dp), parameter :: h_p = 6.62607015e-27_dp
   real(dp), parameter :: P0 = 1.0e6_dp
 
   real(dp), parameter :: f_con = 0.001_dp
@@ -49,7 +51,10 @@ module mini_ch_class
 
   real(dp), allocatable, dimension(:) :: Keq
   real(dp), allocatable, dimension(:) :: re_f, re_r
+
+  integer :: nwl
   real(dp), allocatable, dimension(:) :: wl_grid
+  real(dp), allocatable, dimension(:,:) :: a_flux
   !$omp threadprivate(Keq, re_f, re_r)
 
 contains

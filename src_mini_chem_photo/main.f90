@@ -1,8 +1,8 @@
 program mini_chem_main
   use mini_ch_precision
-  use mini_ch_class, only: g_sp, wl_grid
+  use mini_ch_class, only: g_sp
   use mini_ch_ce_interp, only : interp_ce_table
-  use mini_ch_read_reac_list, only : read_react_list, init_photochem
+  use mini_ch_init, only : read_react_list, init_photochem
   use mini_ch_i_dlsode_photo, only : mini_ch_dlsode_photo
   implicit none
 
@@ -22,11 +22,8 @@ program mini_chem_main
   real(dp), allocatable, dimension(:) :: Tl, pl, pe, mu, Kzz, tau_IRl
   real(dp), allocatable, dimension(:,:) :: VMR, VMR_IC
 
-  integer :: nwl
   character(len=200) :: stellar_file
   real(dp) :: dbin1, dbin2, dbin_12trans, wl_s, wl_e
-  real(dp), allocatable, dimension(:) :: wl
-  real(dp), allocatable, dimension(:,:) :: a_flux
 
   namelist /mini_chem_photo/ t_step, n_step, n_sp, data_file, sp_file, network, net_dir, met, &
     & nlay, IC_file, stellar_file
@@ -115,17 +112,10 @@ program mini_chem_main
   dbin2 = 2.0_dp   ! the uniform bin width > dbin_12trans (nm)
   dbin_12trans = 240.0_dp 
   wl_s = 0.1_dp  ! Start wavelength
-  wl_e = 206.6_dp ! End wavelength
+  wl_e = 300.0_dp ! End wavelength
 
   ! Initialise photochemistry - reads stellar flux, calculates wavelength grid and interpolates cross-sections
-  call init_photochem(dbin1, dbin2, dbin_12trans, wl_s, wl_e, stellar_file, nwl)
-
-  print*, wl_grid(:)
-
-  stop
-
-  allocate(a_flux(nlay,nwl))
-  a_flux(:,:) = 1.0e2_dp
+  call init_photochem(nlay, dbin1, dbin2, dbin_12trans, wl_s, wl_e, stellar_file)
 
   ! Initial time
   t_now = 0.0_dp
@@ -139,9 +129,11 @@ program mini_chem_main
       VMR(i,:) = max(VMR(i,:)/sum(VMR(i,:)),1e-30_dp)
     end do
 
+    !! Calculate the actintic flux in the column
+
     ! Call dlsode - bdf method - don't send He to integrator so dimensions are n_sp-1
     do i = 1, nlay
-      call mini_ch_dlsode_photo(Tl(i), pl(i), t_step, VMR(i,1:n_sp-1), nwl, a_flux(i,:), network)
+      call mini_ch_dlsode_photo(i, Tl(i), pl(i), t_step, VMR(i,1:n_sp-1), network)
     end do
 
     do i = 1, nlay

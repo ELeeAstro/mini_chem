@@ -7,12 +7,11 @@ module mini_ch_chem
 
 contains
 
-  subroutine reaction_rates(T, P, nd_atm, nwl, wl, a_flux)
+  subroutine reaction_rates(T, P, nd_atm, ilay)
     implicit none
 
-    integer, intent(in) :: nwl
+    integer, intent(in) :: ilay
     real(dp), intent(in) :: T, P, nd_atm
-    real(dp), dimension(nwl), intent(in) :: a_flux, wl
 
     integer :: i, iT1, iT2, iT3, iP1, iP2, iP3
     real(dp) :: k0, kinf
@@ -127,8 +126,13 @@ contains
 
       case(5)
 
-        ! Calculate photochemical dissociation rate given the actinic flux at each wavelength
-        kf = trapz(wl(:),a_flux(:)*g_sp(re(i)%gi_re(1))%xsec(:))
+        if (all(a_flux(ilay,:) < 1e-30_dp)) then
+          kf = 0.0_dp
+        else
+          ! Calculate photochemical dissociation rate given the actinic flux at each wavelength
+          ! Use trapezium rule to integrate expression
+          kf = trapz(wl_grid(:),a_flux(ilay,:)*g_sp(re(i)%gi_re(1))%ph_xsec(:))
+        end if
 
       case default
 

@@ -149,10 +149,67 @@ contains
 
   end subroutine read_react_list
 
-  subroutine init_photochem(dbin1, dbin2, dbin_12trans, wl_s, wl_e, stellar_file, nwl)
+  subroutine init_photochem(nlay, dbin1, dbin2, dbin_12trans, wl_s, wl_e, stellar_file)
     implicit none
 
-    integer, intent(out) :: nwl
+    integer, intent(in) :: nlay
+    real(dp), intent(in) :: dbin1, dbin2, dbin_12trans, wl_s, wl_e
+    character(len=200), intent(in) :: stellar_file
+
+    integer :: i, n1, n2
+    real(dp) :: wl_now
+
+    !! First calculate wavelength grid for photochemistry calculations
+    !! We follow the vulcan method, splitting the range into 2 parts, one at width dbin1 and dbin2
+    !! that transitions at dbin_12trans - then output number of wavelengths and generate wavelength grid
+
+    !! Count number of intervals in first length
+    n1 = 1
+    wl_now = wl_s
+    do while (wl_now < dbin_12trans)
+      wl_now = wl_now + dbin1
+      n1 = n1 + 1
+      !print*, n1, wl_now,  dbin_12trans
+    end do
+
+    !! Remove one in case of overshoot
+    n1 = n1 - 1
+
+    !! Now count number of intervals in second length
+    n2 = 1
+    wl_now = dbin_12trans
+    do while (wl_now < wl_e)
+      wl_now = wl_now + dbin2
+      n2 = n2 + 1
+      !print*, n2, wl_now, wl_e
+    end do
+
+    !! Remove one in case of overshoot
+    n2 = n2 - 1
+
+    !! Generate grid of wavelength according to total number of intervals
+    nwl = n1 + n2
+    allocate(wl_grid(nwl)) ! Global variable
+
+    wl_grid(1) = wl_s
+    do i = 2, nwl-1
+      if (i <= n1) then 
+        wl_grid(i) = wl_grid(i-1) + dbin1
+      else 
+        wl_grid(i) = wl_grid(i-1) + dbin2
+      end if
+    end do
+    wl_grid(nwl) = wl_e
+
+    !! Convert nm to cm for integration purposes
+    wl_grid(:) = wl_grid(:)*1e-7_dp
+
+    !! Allocate actinic flux array
+    allocate(a_flux(nlay,nwl))
+
+    !! Read in stellar flux file and interpolate to wavelength grid
+    !! Scale flux to distance and radius of planet
+
 
   end subroutine init_photochem
 
