@@ -142,7 +142,7 @@ Is the main mini-chem call, takes in a temperature [K], pressure [Pa], time step
 
 NOTE: GCM tracers must be in the same order as the _sp file!! i.e. OH must be the first tracer (or passed into mini-chem in VMR index 1 and He the last tracer.)
 Helium is assumed to be a passive tracer, so is passed to the routine but is not integrated. 
-So you would call mini-chem for a 3D structure like: \
+So you would call mini-chem for a 3D structure like: 
 
 do i \
   do j \
@@ -150,7 +150,7 @@ do i \
       call mini_ch_dlsode(T(i,j,k), P(i,j,k), t_step, q(i,j,k,:), network) \
     end do \
   end do \
-end do \
+end do 
 
 where the last dimension of q is size 13 and is the GCM tracer representing the chemical species VMR in mini-chem.
 
