@@ -6,7 +6,7 @@ NOTE: This code is in active development and aims to have continual improvements
 
 Mini-chem is a kinetic chemistry network solver primarily for gas giant atmospheric modelling, pared down from the large chemical networks.
 This makes use of 'net forward reaction tables', which reduce the number of reactions and species required to be evolved in the ODE solvers significantly.
-Mini-chem's NCHO network currently consists of only 12 species with 10 forward reactions (for 20 total including reversed reactions), making it a lightweight and easy to couple network to large scale 3D GCM models, or other models of interest (such as 1D or 2D kinetic modelling efforts).
+Mini-chem's NCHO network currently consists of only 13 species with 10 forward reactions (for 20 total including reversed reactions), making it a lightweight and easy to couple network to large scale 3D GCM models, or other models of interest (such as 1D or 2D kinetic modelling efforts).
 
 These are the papers describing mini-chem methods so far: \
 Tsai et al. (2022) - A Mini-Chemical Scheme with Net Reactions for 3D GCMs I.: Thermochemical Kinetics - A&A Volume 664, id.A82, 16 pp. - arXiv:2204.04201 \
@@ -25,7 +25,7 @@ This is generally slower than the (in previous versions) [Pairwise Summation](ht
 This behavior is also seen in the [FRECKLL](https://ui.adsabs.harvard.edu/abs/2022arXiv220911203A/abstract) kinetic code, which uses a 'distillation' technique to reduce the condition number.
 Naive summation typically produces the wrong answer, showing the importance of considering more accurate summation methods.
 
-All source code has been tested with the gcc (gfortran) and intel (ifx) compilers. Other compilers are under testing.
+All source code has been tested with the gcc (gfortran), other compilers are under testing.
 
 ## mini_chem.nml
 
@@ -86,7 +86,7 @@ Contains a standalone version using the limex ODE solver (experimental).
 
 ### outputs_*
 
-Contains the outputs and plotting scripts for the 0D test code.
+Contains the outputs and plotting scripts for the 0D test code. comp_to_vulcan.py can be used to benchmark against vulcan 0D cases.
 
 ### chem_data
 
@@ -117,6 +117,7 @@ Improve equilibrium condition detection.
 ## Compiling
 
 The fortran code can be compiled by altering the makefiles in each src_ directory. 
+'make' or 'make debug' (for debug flags) can be used to compile the examples.
 The executable is then in the main directory. 
 Compiled code can be removed by entering 'make clean'.
 You will need to clean and recompile if any changes to the source code are made.
@@ -135,13 +136,15 @@ call read_react_list(data_file, sp_file, net_dir, met)
 
 Reads the reaction list network (see namelist file for examples) - basically set these file paths inside the GCM and call this routine (only) once before the first mini-chem call.
 
-call mini_ch_dlsode(T_in, P_in, t_step, VMR(1:n_sp-1), network)
+call mini_ch_dlsode(T_in, P_in, t_step, VMR(:), network)
 
-Is the main mini-chem call, takes in a temperature [K], pressure [Pa], time step and current VMR values and network (e.g. 'NCHO'). Call this routine for each GCM cell to perform the kinetic chemistry for that cell. This is usually not called every timestep, but every X times (e.g. 12 hour timesteps or whatever is best for your simulation). 
+Is the main mini-chem call, takes in a temperature [K], pressure [Pa], time step and current VMR values and network (e.g. 'NCHO'). Call this routine for each GCM cell to perform the kinetic chemistry for that cell. This is usually not called every timestep, but every X times (e.g. 1 hour timesteps or whatever is best for your simulation). The time-step passed to the routine is then the `chemical time-step' for the simulation. For example, if mini-chem is called every second hydrodynamical timestep, then t_step = t_hydro*2.
 
 NOTE: GCM tracers must be in the same order as the _sp file!! i.e. OH must be the first tracer (or passed into mini-chem in VMR index 1 and He the last tracer.)
-Helium is assumed to be a passive tracer, so is not passed to mini-chem.
+Helium is assumed to be a passive tracer, so is passed to the routine but is not integrated
 So you would call, mini-chem like:
 
-call mini_ch_dlsode(T(i,j,k), P(i,j,k), t_step, q(i,j,k,1:n_sp-1), network)
+call mini_ch_dlsode(T(i,j,k), P(i,j,k), t_step, q(i,j,k,:), network)
+
+where the last dimension of q is size 13 and is the GCM tracer representing the chemical species VMR in mini-chem.
 

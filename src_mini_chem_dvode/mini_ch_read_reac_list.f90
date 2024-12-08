@@ -9,7 +9,7 @@ contains
     implicit none
 
     character(len=200), intent(in) :: data_file, sp_file, net_dir, met
-    integer :: i, u, j, k, u2, i_re, i_pr
+    integer :: i, u, j, k, u2
 
     !! Read in the reaction list
     open(newunit=u,file=trim(data_file),status='old',action='read',form='formatted')
@@ -102,7 +102,7 @@ contains
 
     do i = 1, n_sp
       g_sp(i)%id = i
-      read(u,*) g_sp(i)%c, g_sp(i)%mw, g_sp(i)%n_a
+      read(u,*) g_sp(i)%c, g_sp(i)%mw, g_sp(i)%thresh, g_sp(i)%n_a
       allocate(g_sp(i)%a_l(g_sp(i)%n_a))
       read(u,*) g_sp(i)%a_l(:)
       allocate(g_sp(i)%a_h(g_sp(i)%n_a))
@@ -142,58 +142,7 @@ contains
       ! print*, i, re(i)%c_pr(:), re(i)%gi_pr(:)
     end do
 
-    !! For each species, we find the id number of a reaction it is involved with as
-    !! a product or reactant - this allow easier and more accurate summing later
-    do j = 1, n_sp
-      ! First count how many reactions as a product this species is in
-      i_re = 0
-      i_pr = 0
-      do i = 1, n_reac
-        do k = 1, re(i)%n_re
-          if (g_sp(j)%c == re(i)%c_re(k)) then
-            i_re = i_re + 1
-            exit
-          end if
-        end do
-
-        do k = 1, re(i)%n_pr
-          if (g_sp(j)%c == re(i)%c_pr(k)) then
-            i_pr = i_pr + 1
-            exit
-          end if
-        end do
-      end do
-
-      ! Allocate the gas phase classes
-      allocate(g_sp(j)%ri_re(i_re), g_sp(j)%ri_pr(i_pr))
-
-      ! Give the arrays the index values of the reactions
-      i_re = 0
-      i_pr = 0     
-      do i = 1, n_reac
-        do k = 1, re(i)%n_re
-          if (g_sp(j)%c == re(i)%c_re(k)) then
-            i_re = i_re + 1
-            g_sp(j)%ri_re(i_re) = i 
-            exit
-          end if
-        end do
-
-        do k = 1, re(i)%n_pr
-          if (g_sp(j)%c == re(i)%c_pr(k)) then
-            i_pr = i_pr + 1
-            g_sp(j)%ri_pr(i_pr) = i
-            exit
-          end if
-        end do
-
-      end do
-
-    ! print*, 're', j, g_sp(j)%c, g_sp(j)%ri_re(:)
-    ! print*, 'pr', j, g_sp(j)%c, g_sp(j)%ri_pr(:)
-
-    end do
-
   end subroutine read_react_list
+
 
 end module mini_ch_read_reac_list

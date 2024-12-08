@@ -124,18 +124,15 @@ program mini_chem_main
   ! - this loop emulates what a call to the model is like in the GCM
   do n = 1, n_step
 
-    do i = 1, nlay
-      !! Scale VMR to 1
-      VMR(i,:) = max(VMR(i,:)/sum(VMR(i,:)),1e-30_dp)
-    end do
-
     !! Calculate the actinic flux in the column
     !call mini_ch_actinic_flux(nlay, Tl(:), pl(:), pe(:), VMR(:,:))
 
     ! Call dlsode - bdf method - don't send He to integrator so dimensions are n_sp-1
     do i = 1, nlay
-      call mini_ch_dlsode_photo(i, Tl(i), pl(i), t_step, VMR(i,1:n_sp-1), network)
+      call mini_ch_dlsode_photo(i, Tl(i), pl(i), t_step, VMR(i,:), network)
     end do
+
+    !! Perform vertical diffusion
 
     do i = 1, nlay
       !! Scale VMR to 1

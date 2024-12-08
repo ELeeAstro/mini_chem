@@ -27,10 +27,10 @@ contains
 
     ! DLSODES variables
     real(dp) :: rtol, atol
-    real(dp), dimension(n_sp) :: y, y_old
+    real(dp), allocatable, dimension(:) :: y, y_old
     real(dp), allocatable, dimension(:) :: rwork
     integer, allocatable, dimension(:) :: iwork
-    integer :: itol, itask, istate, iopt, mf
+    integer :: itol, itask, istate, iopt, mf, n_eq
     integer :: rworkdim, iworkdim
 
     !! Find the number density of the atmosphere
@@ -44,8 +44,8 @@ contains
     ! Find the forward, backward and net reaction rates
     call reaction_rates(T_in, P_cgs, nd_atm)
 
-    !! Pass VMR to y array
-    y(:) = VMR(:)
+    ! Number of equations = n_sp - Helium
+    n_eq = n_sp - 1
 
     ! -----------------------------------------
     ! ***  parameters for the DLSODES solver  ***
@@ -61,7 +61,7 @@ contains
       ! mf = 121 - full jacobian matrix with jacobian save
       ! mf = 222 - internal calculated jacobian
       mf = 121
-      rworkdim = 20 + int((2.0_dp + 1.0_dp/2.0_dp)*n_sp**2 + (11.0_dp + 9.0_dp/2.0_dp)*n_sp)
+      rworkdim = 20 + int((2.0_dp + 1.0_dp/2.0_dp)*n_eq**2 + (11.0_dp + 9.0_dp/2.0_dp)*n_eq)
       iworkdim = 30
       allocate(rwork(rworkdim), iwork(iworkdim))
 
@@ -80,7 +80,7 @@ contains
       ! Problem is not too stiff (not typical)
       ! mf = 10 - full jacobian matrix with jacobian save
       mf = 10
-      rworkdim = 20 + 16*n_sp
+      rworkdim = 20 + 16*n_eq
       iworkdim = 30
       allocate(rwork(rworkdim), iwork(iworkdim))
       itol = 1
@@ -98,6 +98,13 @@ contains
 
     ncall = 0
 
+    ! Scale VMR to 1 and limit
+    VMR(:) = max(VMR(:)/sum(VMR(:)),1e-30_dp)
+
+    !! Pass VMR to y array
+    allocate(y(n_eq), y_old(n_eq))
+    y(:) = VMR(1:n_eq)
+
     do while (t_now < t_end)
 
       y_old(:) = y(:)
@@ -105,13 +112,13 @@ contains
 
       select case(network)
       case('HO')
-        call DLSODES (RHS_update, n_sp, y, t_now, t_end, itol, rtol, atol, itask, &
+        call DLSODES (RHS_update, n_eq, y, t_now, t_end, itol, rtol, atol, itask, &
         & istate, iopt, rwork, rworkdim, iwork, iworkdim, jac_dummy, mf)
       case('CHO')
-        call DLSODES (RHS_update, n_sp, y, t_now, t_end, itol, rtol, atol, itask, &
+        call DLSODES (RHS_update, n_eq, y, t_now, t_end, itol, rtol, atol, itask, &
         & istate, iopt, rwork, rworkdim, iwork, iworkdim, jac_dummy, mf)
       case('NCHO')
-        call DLSODES (RHS_update, n_sp, y, t_now, t_end, itol, rtol, atol, itask, &
+        call DLSODES (RHS_update, n_eq, y, t_now, t_end, itol, rtol, atol, itask, &
         & istate, iopt, rwork, rworkdim, iwork, iworkdim, jac_NCHO, mf)
       case default
         print*, 'Invalid network provided: ', trim(network)
@@ -137,9 +144,12 @@ contains
     end do
 
     !! Pass y to VMR array
-    VMR(:) = y(:)
+    VMR(1:n_eq) = y(:)
 
-    deallocate(Keq, re_r, re_f, rwork, iwork)
+    ! Scale VMR to 1 and limit
+    VMR(:) = max(VMR(:)/sum(VMR(:)),1e-30_dp)
+
+    deallocate(Keq, re_r, re_f, rwork, iwork, y, y_old)
 
   end subroutine mini_ch_dlsodes
 

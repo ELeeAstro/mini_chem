@@ -1,71 +1,62 @@
-# for gfortran Compiler
+# Compiler settings
 #===================
 
 F90 = gfortran
-F90LINKER =  gfortran
+F90LINKER = $(F90)
 
-#Debugging and development flags
-#FFLAGS	= -Og -g -pipe -Wall -Wextra -fbacktrace -fcheck=all -ffpe-trap=invalid,zero,overflow
-#FFLAGS	= -Og -pipe -Wall -Wextra -g -fbacktrace
+# Default flags for release build
+FFLAGS = -O3 -pipe
 
-#Serial flags
-FFLAGS  = -O3 -pipe 
+# Debugging flags for debugging purposes
+DEBUG_FLAGS = -Og -g -pipe -Wall -Wextra -fbacktrace -fcheck=all -ffpe-trap=invalid,zero,overflow
 
-# for intel Compiler
-#====================
+# Include directories and libraries (if any)
+INCLUDES =
+LFLAGS = $(FFLAGS)
+LIBS =
 
-#F90 = ifx
-#F90LINKER = ifx
-
-#FFLAGS   = -O0 -g -traceback -fpp -prec-div -fp-model source -fpe0 -ipo
-#FFLAGS   = -O3 -fpp -fp-model source -ipo
-
-# for nvfortran compiler
-#====================
-
-#F90 = nvfortran
-#F90LINKER = nvfortran
-
-#FFLAGS    = -O1
-
-#====================
-
-DEFS      =
-INCLUDES  =
-LFLAGS    = $(FFLAGS)
-
+# Source files
 OBJECTS = \
-decsol.o \
-dc_decsol.o \
-seulex.o \
-mini_ch_precision.o \
-mini_ch_class.o \
-mini_ch_ce_interp.o \
-mini_ch_read_reac_list.o \
-mini_ch_chem.o \
-mini_ch_i_seulex.o \
-main.o
+    dc_decsol.o \
+    decsol.o \
+    seulex.o \
+    mini_ch_precision.o \
+    mini_ch_class.o \
+    mini_ch_ce_interp.o \
+    mini_ch_read_reac_list.o \
+    mini_ch_chem.o \
+    mini_ch_i_seulex.o \
+    main.o
 
+# Executable
+EXECS = ../mini_chem_seulex
 
-# executable statement
-EXECS  = ../mini_chem_seulex
+#====================
+# Phony targets
+.PHONY: all clean debug release
 
-.SUFFIXES : .o .f90 .f .F90
+# Default target (release build by default)
+all: $(EXECS)
 
-default: mini_chem
+# Debug build (overrides FFLAGS with debug flags)
+debug: FFLAGS = $(DEBUG_FLAGS)
+debug: clean all
 
-mini_chem: $(OBJECTS)
+# Release build (uses default release flags)
+release: clean all
+
+# Linking the executable
+$(EXECS): $(OBJECTS)
 	$(F90LINKER) $(LFLAGS) $(OBJECTS) -o $(EXECS)
-#$(LAPACK) $(BLAS)
 
+# Pattern rule for compiling Fortran 90 files
+%.o: %.f90
+	$(F90) $(FFLAGS) $(DEFS) -c $<
+
+# Pattern rule for compiling Fortran 77 (.f) files
+%.o: %.f
+	$(F90) $(FFLAGS) $(DEFS) -c $<
+
+# Clean target (removes object files, module files, and executable)
 clean:
 	rm -f *.o *.mod *~ *__genmod.f90 $(EXECS)
-
-.f90.o:
-	$(F90) $(FFLAGS) $(DEFS) -c $<
-
-.F90.o:
-	$(F90) $(FFLAGS) $(DEFS) -c $<
-
-.f.o:
-	$(F90) $(FFLAGS) $(DEFS) -c $<

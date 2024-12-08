@@ -19,6 +19,9 @@ module mini_ch_class
     integer :: nT, nP, nkf
     real(dp), allocatable, dimension(:) :: T, P, lT, lP
     real(dp), allocatable, dimension(:,:) :: kf, lkf
+
+    integer :: br_idx
+
   end type reaction
 
   type species
@@ -26,14 +29,20 @@ module mini_ch_class
     character(len=20) :: c
     real(dp) :: mw, nd
     real(dp), allocatable, dimension(:) :: a_l, a_h
-    integer, allocatable, dimension(:) :: ri_re, ri_pr
+
+    real(dp) :: thresh
+    real(dp), allocatable, dimension(:) :: ph_xsec, Ray_xsec
+
   end type species
 
+  real(dp), parameter :: pi = 4.0_dp*atan(1.0_dp)
   real(dp), parameter :: kb = 1.380649e-16_dp
   real(dp), parameter :: R = 8.31446261815324e7_dp
+  real(dp), parameter :: c_s = 2.99792458e10_dp
+  real(dp), parameter :: h_p = 6.62607015e-27_dp
   real(dp), parameter :: P0 = 1.0e6_dp
 
-  real(dp), parameter :: f_con = 1e-6_dp
+  real(dp), parameter :: f_con = 0.001_dp
   real(dp), parameter :: del_con = 0.01_dp
   real(dp), parameter :: eps_con = 1.0e-4_dp
 

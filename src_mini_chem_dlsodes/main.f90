@@ -71,16 +71,10 @@ program mini_chem_main
     ! Time now
     print*, n, n_step, t_now
 
-    !! Scale VMR to 1
-    VMR(:) = max(VMR(:)/sum(VMR(:)),1e-30_dp)
-
-    ! Call dlsodes - bdf method - don't send He to integrator so dimensions are n_sp-1
-    call mini_ch_dlsodes(T_in, P_in, t_step, VMR(1:n_sp-1), network)
+    ! Call dlsodes - bdf method 
+    call mini_ch_dlsodes(T_in, P_in, t_step, VMR(:), network)
     print*, 'dlsodes: ', VMR(:), sum(VMR(:))
     write(u,*) n, t_now, VMR(:)
-
-    !! Scale VMR to 1
-    VMR(:) = max(VMR(:)/sum(VMR(:)),1e-30_dp)
 
   end do
 

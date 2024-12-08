@@ -35,6 +35,7 @@ module mini_ch_class
 
   end type species
 
+  real(dp), parameter :: pi = 4.0_dp*atan(1.0_dp)
   real(dp), parameter :: kb = 1.380649e-16_dp
   real(dp), parameter :: R = 8.31446261815324e7_dp
   real(dp), parameter :: c_s = 2.99792458e10_dp
@@ -53,7 +54,7 @@ module mini_ch_class
   real(dp), allocatable, dimension(:) :: re_f, re_r
 
   integer :: nwl
-  real(dp), allocatable, dimension(:) :: wl_grid, s_flux
+  real(dp), allocatable, dimension(:) :: wl_grid, s_flux, wn_grid
   real(dp), allocatable, dimension(:,:) :: a_flux
   !$omp threadprivate(Keq, re_f, re_r)
 

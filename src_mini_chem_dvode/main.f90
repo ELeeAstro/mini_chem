@@ -71,16 +71,10 @@ program mini_chem_main
     ! Time now
     print*, n, n_step, t_now
 
-    !! Scale VMR to 1
-    VMR(:) = max(VMR(:)/sum(VMR(:)),1e-30_dp)
-
     ! Call dvode - BDF method - don't send He to integrator so dimensions are n_sp-1
     call mini_ch_dvode(T_in, P_in, t_step, VMR(1:n_sp-1), network)
     print*, 'dvode: ', VMR(:), sum(VMR(:))
     write(u,*) n, t_now, VMR(:)
-
-    !! Scale VMR to 1
-    VMR(:) = max(VMR(:)/sum(VMR(:)),1e-30_dp)
 
   end do
 

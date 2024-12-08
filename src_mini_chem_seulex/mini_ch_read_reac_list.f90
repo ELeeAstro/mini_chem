@@ -102,7 +102,7 @@ contains
 
     do i = 1, n_sp
       g_sp(i)%id = i
-      read(u,*) g_sp(i)%c, g_sp(i)%mw, g_sp(i)%n_a
+      read(u,*) g_sp(i)%c, g_sp(i)%mw, g_sp(i)%thresh, g_sp(i)%n_a
       allocate(g_sp(i)%a_l(g_sp(i)%n_a))
       read(u,*) g_sp(i)%a_l(:)
       allocate(g_sp(i)%a_h(g_sp(i)%n_a))
@@ -143,5 +143,6 @@ contains
     end do
 
   end subroutine read_react_list
+
 
 end module mini_ch_read_reac_list

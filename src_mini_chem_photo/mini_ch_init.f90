@@ -6,6 +6,12 @@ module mini_ch_init
   public :: read_react_list, init_photochem
   !private ::
 
+
+  ! Parameters for H
+  real(dp), parameter :: wl_ly = 121.567_dp * 1.0e-7_dp ! Lyman alpha wavelength [cm]
+  real(dp), parameter :: f_ly = c_s/wl_ly
+  real(dp), parameter :: w_l = (2.0_dp * pi * f_ly) / 0.75_dp
+
 contains
 
   subroutine read_react_list(data_file, sp_file, net_dir, met)
@@ -107,7 +113,7 @@ contains
 
     do i = 1, n_sp
       g_sp(i)%id = i
-      read(u,*) g_sp(i)%c, g_sp(i)%mw, g_sp(i)%n_a
+      read(u,*) g_sp(i)%c, g_sp(i)%mw, g_sp(i)%thresh, g_sp(i)%n_a
       allocate(g_sp(i)%a_l(g_sp(i)%n_a))
       read(u,*) g_sp(i)%a_l(:)
       allocate(g_sp(i)%a_h(g_sp(i)%n_a))
@@ -156,10 +162,13 @@ contains
     real(dp), intent(in) :: dbin1, dbin2, dbin_12trans, wl_s, wl_e
     character(len=200), intent(in) :: stellar_file
 
-    integer :: i, n1, n2, u, nlines, io
+    integer :: i, l, n1, n2, u, nlines, io
     integer :: idx, idx1
     real(dp) :: wl_now
     real(dp), allocatable, dimension(:) :: wl_f, flx_f
+
+    real(dp) :: A, B, C, nd_stp, King, n_ref, Dpol, a_vol
+    real(dp) :: freq, w, wwl
 
     !! First calculate wavelength grid for photochemistry calculations
     !! We follow the vulcan method, splitting the range into 2 parts, one at width dbin1 and dbin2
@@ -191,7 +200,7 @@ contains
 
     !! Generate grid of wavelength according to total number of intervals
     nwl = n1 + n2
-    allocate(wl_grid(nwl)) ! Global variable
+    allocate(wl_grid(nwl), wn_grid(nwl)) ! Global variable
 
     wl_grid(1) = wl_s
     do i = 2, nwl-1
@@ -205,6 +214,7 @@ contains
 
     !! Convert nm to cm for integration purposes
     wl_grid(:) = wl_grid(:)*1e-7_dp
+    wn_grid(:) = 1.0_dp/wl_grid(:)
 
     !! Allocate actinic flux array and stellar flux
     allocate(a_flux(nlay,nwl), s_flux(nwl))
@@ -252,19 +262,181 @@ contains
 
       if (idx < 1) then
         s_flux(i) = 0.0_dp
-      else if (idx >= nwl) then
+      else if (idx >= nlines) then
         s_flux(i) = 0.0_dp
       else
         idx1 = idx + 1
         call linear_log_interp(wl_grid(i), wl_f(idx), wl_f(idx1), flx_f(idx), flx_f(idx1), s_flux(i))
       end if
 
-      !print*, i, wl_grid(i)*1e7_dp, s_flux(i)
+      print*, i, wl_grid(i)*1e7_dp, s_flux(i)
     end do
 
 
     !! Now we must read in photochemical cross sections for each species and interpolate as
-    !! well as calculate Rayleigh scattering for each species
+    !! well as calculate Rayleigh scattering for each species 
+
+    ! Loop over each species and calculate Rayleigh xsec
+    ! - we need smooth cross-sections
+    ! So typically used functions in the field sometimes cannot be used
+    do i = 1, n_sp
+
+      allocate(g_sp(i)%ph_xsec(nwl), g_sp(i)%Ray_xsec(nwl))
+
+      !! Calculate Rayleigh scattering data if available
+      select case(trim(g_sp(i)%c))
+
+      case('OH')
+
+        !! Use polarisability measurement
+        a_vol = 6.965_dp / (1e8_dp)**3
+        King = 1.0_dp
+        do l = 1, nwl
+          g_sp(i)%Ray_xsec(l) = 128.0_dp/3.0_dp * pi**5 * a_vol**2 * wn_grid(l)**4 * King
+        end do
+
+      case('H2')
+
+        !! Use Irwin (2009)+ parameters
+        A = 13.58e-5_dp ; B = 7.52e-3_dp
+        nd_stp = 2.65163e19_dp
+        King = 1.0_dp
+
+        do l = 1, nwl
+          n_ref = A * (1.0_dp + B/(wl_grid(l)*1e4_dp)**2) + 1.0_dp
+          g_sp(i)%Ray_xsec(l) = ((24.0_dp * pi**3 * wn_grid(l)**4)/(nd_stp**2)) &
+            & * ((n_ref**2 - 1.0_dp)/(n_ref**2 + 2.0_dp))**2  * King
+        end do
+
+      case('H2O')  
+
+        g_sp(i)%Ray_xsec(:) = 0.0_dp
+
+      case('H')
+
+        ! Ferland (2001) - low energy limit
+        do l = 1, nwl
+          freq = c_s/wl_grid(l)
+          w = 2.0_dp * pi * freq
+          wwl = w/w_l
+          g_sp(i)%Ray_xsec(l) =  8.41e-25_dp*(wwl)**4 + 3.37e-24_dp*(wwl)**6 + 4.71e-22_dp*(wwl)**14
+        end do
+
+      case('CO')  
+
+        !! Use Irwin (2009)+ parameters
+        A = 32.7e-5_dp ; B = 8.1e-3_dp
+        nd_stp = 2.65163e19_dp
+        King = 1.0_dp
+
+        do l = 1, nwl
+          n_ref = A * (1.0_dp + B/(wl_grid(l)*1e4_dp)**2) + 1.0_dp
+          g_sp(i)%Ray_xsec(l) = ((24.0_dp * pi**3 * wn_grid(l)**4)/(nd_stp**2)) &
+            & * ((n_ref**2 - 1.0_dp)/(n_ref**2 + 2.0_dp))**2  * King
+        end do
+        
+      case('CO2')
+
+        !! Use Irwin (2009)+ parameters
+        A = 43.9e-5_dp ; B = 6.4e-3_dp
+        nd_stp = 2.65163e19_dp
+        King = 1.0_dp
+
+        do l = 1, nwl
+          n_ref = A * (1.0_dp + B/(wl_grid(l)*1e4_dp)**2) + 1.0_dp
+          g_sp(i)%Ray_xsec(l) = ((24.0_dp * pi**3 * wn_grid(l)**4)/(nd_stp**2)) &
+            & * ((n_ref**2 - 1.0_dp)/(n_ref**2 + 2.0_dp))**2  * King
+        end do
+
+      case('O') 
+
+        !! Use polarisability measurement
+        a_vol = 0.802_dp / (1e8_dp)**3
+        King = 1.0_dp
+        do l = 1, nwl
+          g_sp(i)%Ray_xsec(l) = 128.0_dp/3.0_dp * pi**5 * a_vol**2 * wn_grid(l)**4 * King
+        end do
+
+      case('CH4')
+
+        ! Use He et al. (2021) expression
+        A = 3603.09_dp ; B = 4.40362e14_dp ; C = 1.1741e10_dp
+        nd_stp = 2.546899e19_dp
+        King = 1.0_dp
+
+        do l = 1, nwl
+          n_ref = (A + (B / (C - wn_grid(l)**2)))/1e8_dp + 1.0_dp
+          g_sp(i)%Ray_xsec(l) = ((24.0_dp * pi**3 * wn_grid(l)**4)/(nd_stp**2)) &
+            & * ((n_ref**2 - 1.0_dp)/(n_ref**2 + 2.0_dp))**2  * King
+        end do
+
+
+      case('C2H2')
+
+        !! Use polarisability measurement
+        a_vol = 3.487_dp / (1e8_dp)**3
+        King = 1.0_dp
+        do l = 1, nwl
+          g_sp(i)%Ray_xsec(l) = 128.0_dp/3.0_dp * pi**5 * a_vol**2 * wn_grid(l)**4 * King
+        end do
+
+      case('NH3')
+        
+        !! Use Irwin (2009)+ parameters
+        A = 37.0e-5_dp ; B = 12.0e-3_dp; Dpol = 0.0922_dp
+        nd_stp = 2.65163e19_dp
+        King = (6.0_dp+3.0_dp*Dpol)/(6.0_dp-7.0_dp*Dpol)
+
+        do l = 1, nwl
+          n_ref = A * (1.0_dp + B/(wl_grid(l)*1e4_dp)**2) + 1.0_dp
+          g_sp(i)%Ray_xsec(l) = ((24.0_dp * pi**3 * wn_grid(l)**4)/(nd_stp**2)) &
+            & * ((n_ref**2 - 1.0_dp)/(n_ref**2 + 2.0_dp))**2  * King
+        end do
+
+      case('N2')
+
+        !! Use Irwin (2009)+ parameters
+        A = 29.06e-5_dp ; B = 7.7e-3_dp; Dpol = 0.030_dp
+        nd_stp = 2.65163e19_dp
+
+        King = (6.0_dp+3.0_dp*Dpol)/(6.0_dp-7.0_dp*Dpol)
+
+        do l = 1, nwl
+          n_ref = A * (1.0_dp + B/(wl_grid(l)*1e4_dp)**2) + 1.0_dp
+          g_sp(i)%Ray_xsec(l) = ((24.0_dp * pi**3 * wn_grid(l)**4)/(nd_stp**2)) &
+            & * ((n_ref**2 - 1.0_dp)/(n_ref**2 + 2.0_dp))**2  * King
+        end do
+
+      case('HCN')
+
+        !! Use polarisability measurement
+        a_vol = 2.593_dp / (1e8_dp)**3
+        King = 1.0_dp
+        do l = 1, nwl
+          g_sp(i)%Ray_xsec(l) = 128.0_dp/3.0_dp * pi**5 * a_vol**2 * wn_grid(l)**4 * King
+        end do 
+
+      case('He')
+
+        !! Use Irwin (2009)+ parameters
+        A = 3.48e-5_dp ; B = 2.3e-3_dp
+        nd_stp = 2.65163e19_dp
+        King = 1.0_dp
+
+        do l = 1, nwl
+          n_ref = A * (1.0_dp + B/(wl_grid(l)*1e4_dp)**2) + 1.0_dp
+          g_sp(i)%Ray_xsec(l) = ((24.0_dp * pi**3 * wn_grid(l)**4)/(nd_stp**2)) &
+            & * ((n_ref**2 - 1.0_dp)/(n_ref**2 + 2.0_dp))**2  * King
+        end do
+
+      case default
+        print*, 'Species not found: ', trim(g_sp(i)%c), ' - Setting zero Rayleigh xsec'
+        g_sp(i)%Ray_xsec(:) = 0.0_dp
+      end select
+
+    end do
+
+    stop
 
   end subroutine init_photochem
 

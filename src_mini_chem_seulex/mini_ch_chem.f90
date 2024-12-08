@@ -3,8 +3,6 @@ module mini_ch_chem
   use mini_ch_class
   implicit none
 
-
-  private
   public :: reaction_rates, reverse_reactions, check_con
 
 contains
@@ -122,10 +120,10 @@ contains
           ! print*, i, kf
 
         end if
-      
+
       end if
 
-      !! Limit for very small rates
+      !! Limit forward rate for very small values
       re_f(i) = kf
 
       re_r(i) = re_f(i)/Keq(i) * ((kb * T)/P0)**(re(i)%dmu)

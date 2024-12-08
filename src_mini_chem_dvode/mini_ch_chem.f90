@@ -98,7 +98,7 @@ contains
             iT2 = re(i)%nT - 1
             iT3 = re(i)%nT
           end if
-          
+
           lkf(1) = re(i)%lkf(iT1,iP1)
           lkf(2) = re(i)%lkf(iT1,iP2)
           lkf(3) = re(i)%lkf(iT1,iP3)
@@ -123,6 +123,7 @@ contains
 
       end if
 
+      !! Limit forward rate for very small values
       re_f(i) = kf
 
       re_r(i) = re_f(i)/Keq(i) * ((kb * T)/P0)**(re(i)%dmu)

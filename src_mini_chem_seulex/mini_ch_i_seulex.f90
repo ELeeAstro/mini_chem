@@ -26,12 +26,12 @@ contains
     real(dp) :: t_now,  t_old, dt_init
 
     ! seulex variables
-    real(dp), dimension(n_sp) :: y, y_old
+    real(dp), allocatable, dimension(:) :: y, y_old
     real(dp), allocatable, dimension(:) :: rwork
     integer, allocatable, dimension(:) :: iwork
     real(dp) :: rtol, atol
     real(dp) :: rpar
-    integer :: itol, ijac, mljac, mujac, imas, mlmas, mumas, iout, lrwork, liwork, ipar, idid
+    integer :: itol, ijac, mljac, mujac, imas, mlmas, mumas, iout, lrwork, liwork, ipar, idid, n_eq
 
     !! Find the number density of the atmosphere
     P_cgs = P_in * 10.0_dp   ! Convert pascal to dyne cm-2
@@ -44,6 +44,9 @@ contains
     ! Find the forward, backward and net reaction rates
     call reaction_rates(T_in, P_cgs, nd_atm)
 
+    ! Number of equations = n_sp - Helium
+    n_eq = n_sp - 1
+
     ! -----------------------------------------
     ! ***  parameters for the SEULEX-solver  ***
     ! -----------------------------------------
@@ -52,16 +55,16 @@ contains
     atol = 1.0e-30_dp
     itol = 0
     ijac = 1
-    mljac = n_sp
-    mujac = n_sp
+    mljac = n_eq
+    mujac = n_eq
     imas = 0
-    mlmas = n_sp
-    mumas = n_sp
+    mlmas = n_eq
+    mumas = n_eq
     iout = 0
     idid = 0
 
     ! Real work array
-    lrwork = n_sp*(n_sp*3 + 12 + 8) + 4*12 + 20
+    lrwork = n_eq*(n_eq*3 + 12 + 8) + 4*12 + 20
     allocate(rwork(lrwork))
     rwork(:) = 0.0_dp
 
@@ -80,7 +83,7 @@ contains
     rwork(13) = 1.0_dp ! SOL call estimated work
 
     ! Integer work array
-    liwork = 2*n_sp + 12 + 20
+    liwork = 2*n_eq + 12 + 20
     allocate(iwork(liwork))
     iwork(:) = 0
 
@@ -99,9 +102,12 @@ contains
 
     ncall = 0
 
+    ! Scale VMR to 1 and limit
+    VMR(:) = max(VMR(:)/sum(VMR(:)),1e-30_dp)
 
     !! Pass VMR to y array
-    y(:) = VMR(:)
+    allocate(y(n_eq), y_old(n_eq))
+    y(:) = VMR(1:n_eq)
     
     do while((t_now < t_end))
 
@@ -110,21 +116,21 @@ contains
 
       select case(network)
       case('HO')
-        call SEULEX(n_sp,RHS_update,0,t_now,y,t_end,dt_init, &
+        call SEULEX(n_eq,RHS_update,0,t_now,y,t_end,dt_init, &
           &                  rtol,atol,itol, &
           &                  jac_HO,ijac,mljac,mujac, &
           &                  mas_dummy,imas,mlmas,mumas, &
           &                  solout,iout, &
           &                  rwork,lrwork,iwork,liwork,rpar,ipar,idid)
       case('CHO')
-        call SEULEX(n_sp,RHS_update,0,t_now,y,t_end,dt_init, &
+        call SEULEX(n_eq,RHS_update,0,t_now,y,t_end,dt_init, &
           &                  rtol,atol,itol, &
           &                  jac_CHO,ijac,mljac,mujac, &
           &                  mas_dummy,imas,mlmas,mumas, &
           &                  solout,iout, &
           &                  rwork,lrwork,iwork,liwork,rpar,ipar,idid)
       case('NCHO')
-        call SEULEX(n_sp,RHS_update,0,t_now,y,t_end,dt_init, &
+        call SEULEX(n_eq,RHS_update,0,t_now,y,t_end,dt_init, &
           &                  rtol,atol,itol, &
           &                  jac_NCHO,ijac,mljac,mujac, &
           &                  mas_dummy,imas,mlmas,mumas, &
@@ -145,9 +151,12 @@ contains
     end do
 
     !! Pass y to VMR array
-    VMR(:) = y(:)
+    VMR(1:n_eq) = y(:)
 
-    deallocate(rwork, iwork, Keq, re_r, re_f)
+    ! Scale VMR to 1 and limit
+    VMR(:) = max(VMR(:)/sum(VMR(:)),1e-30_dp)
+
+    deallocate(rwork, iwork, Keq, re_r, re_f, y, y_old)
 
   end subroutine mini_ch_seulex
 
