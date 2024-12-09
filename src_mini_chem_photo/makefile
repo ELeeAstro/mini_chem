@@ -18,11 +18,13 @@ LIBS =
 # Source files
 OBJECTS = \
     dlsode.o \
+    ver_diff_mod.o \
     mini_ch_precision.o \
     mini_ch_class.o \
     mini_ch_ce_interp.o \
     mini_ch_init.o \
     mini_ch_chem.o \
+    mini_ch_actinic_flux.o \
     mini_ch_i_dlsode_photo.o \
     main.o
 

@@ -38,8 +38,8 @@ network = 'NCHO'
 
 nlay = 100
 
-t_step = 60
-n_step = 10000
+t_step = 600
+n_step = 1000
 
 n_sp = 13
 
@@ -51,6 +51,9 @@ met = '1x'
 IC_file = 'chem_data/IC/mini_chem_IC_FastChem_1x.txt' 
 
 stellar_file = 'chem_data/stellar/sflux-HD189_Moses11.txt'
+
+Rs = 0.765
+sm_ax = 0.03106
 
 
 /

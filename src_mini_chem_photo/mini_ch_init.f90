@@ -606,8 +606,6 @@ contains
 
     end do
 
-    stop
-
   end subroutine init_photochem
 
 end module mini_ch_init

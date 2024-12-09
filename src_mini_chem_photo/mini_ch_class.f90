@@ -30,7 +30,8 @@ module mini_ch_class
     real(dp) :: mw, nd
     real(dp), allocatable, dimension(:) :: a_l, a_h
 
-    real(dp) :: thresh, nbr, nbr_wl
+    integer :: nbr, nbr_wl
+    real(dp) :: thresh
     real(dp), allocatable, dimension(:) :: ph_axsec, ph_ixsec, Ray_xsec
     real(dp), allocatable, dimension(:) :: br_wl
     real(dp), allocatable, dimension(:,:) :: br, ph_dxsec
@@ -43,6 +44,10 @@ module mini_ch_class
   real(dp), parameter :: c_s = 2.99792458e10_dp
   real(dp), parameter :: h_p = 6.62607015e-27_dp
   real(dp), parameter :: P0 = 1.0e6_dp
+  real(dp), parameter :: amu = 1.66053906660e-24_dp
+
+  real(dp), parameter :: Rsun = 6.95700e10
+  real(dp), parameter :: au = 1.495978707e13
 
   real(dp), parameter :: f_con = 0.001_dp
   real(dp), parameter :: del_con = 0.01_dp

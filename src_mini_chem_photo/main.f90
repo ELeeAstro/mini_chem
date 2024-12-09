@@ -1,9 +1,11 @@
 program mini_chem_main
+  use vert_diff_mod, only : vert_diff
   use mini_ch_precision
-  use mini_ch_class, only: g_sp
+  use mini_ch_class, only : g_sp
   use mini_ch_ce_interp, only : interp_ce_table
   use mini_ch_init, only : read_react_list, init_photochem
-  use mini_ch_i_dlsode_photo, only : mini_ch_dlsode_photo, mini_ch_actinic_flux
+  use mini_ch_actinic_flux, only : calc_actinic_flux
+  use mini_ch_i_dlsode_photo, only : mini_ch_dlsode_photo
   implicit none
 
   integer :: n, n_step, u_nml
@@ -19,14 +21,15 @@ program mini_chem_main
 
   integer :: i, nlay, nlev
   real(dp) :: mu_z, Tirr, Tint, k_IR, k_V, grav, p_top, p_bot, gam, tau0
-  real(dp), allocatable, dimension(:) :: Tl, pl, pe, mu, Kzz, tau_IRl
+  real(dp), allocatable, dimension(:) :: Tl, pl, pe, mu, Kzz, tau_IRl, VMR0
   real(dp), allocatable, dimension(:,:) :: VMR, VMR_IC
 
   character(len=200) :: stellar_file
   real(dp) :: dbin1, dbin2, dbin_12trans, wl_s, wl_e
+  real(dp) :: Rs, sm_ax
 
   namelist /mini_chem_photo/ t_step, n_step, n_sp, data_file, sp_file, network, net_dir, met, &
-    & nlay, IC_file, stellar_file
+    & nlay, IC_file, stellar_file, Rs, sm_ax
 
   !! Read input variables from namelist
   open(newunit=u_nml, file='mini_chem.nml', status='old', action='read')
@@ -38,14 +41,14 @@ program mini_chem_main
 
   nlev = nlay + 1
 
-  mu_z = 0.577_dp
-  Tirr = 1000.0_dp
-  Tint = 100.0_dp
+  mu_z = 0.5_dp!1e-3_dp
+  Tirr = 1400.0_dp
+  Tint = 400.0_dp
   grav = 10.0_dp
   k_V = 6e-4_dp
   k_IR = 1e-3_dp
   p_top = 1e-9_dp * 1e5_dp
-  p_bot = 10.0_dp * 1e5_dp
+  p_bot = 100.0_dp * 1e5_dp
 
   ! Generate vertical T-p-Kzz profile
   allocate(Tl(nlay),pl(nlay),pe(nlev),Kzz(nlay),tau_IRl(nlay))
@@ -73,7 +76,7 @@ program mini_chem_main
     & (2.0_dp/3.0_dp + mu_z/gam + ((gam/(3.0_dp*mu_z)) - mu_z/gam) * exp(-gam*tau_IRl(:)/mu_z))
   Tl(:) = Tl(:)**(1.0_dp/4.0_dp)
 
-  Kzz(:) = 1e8_dp
+  Kzz(:) = 1e11_dp
 
   !! Print T-p-Kzz profile
   print*, 'i, pl [bar], T[k], Kzz [cm2 s-1]'
@@ -81,8 +84,15 @@ program mini_chem_main
     print*, i, pl(i)/1e5_dp, Tl(i), Kzz(i)
   end do
 
+  ! Output T-p-Kzz profile 
+  open(newunit=u,file='outputs_photo/T_p_Kzz.txt',action='readwrite')
+  do i = 1, nlay
+    write(u,*) i, pl(i)/1e5_dp, Tl(i), Kzz(i)
+  end do
+  close(u)
+
   ! Give initial conditions to VMR array
-  allocate(VMR(nlay,n_sp),VMR_IC(nlay,n_sp),mu(nlay))
+  allocate(VMR(nlay,n_sp), VMR_IC(nlay,n_sp), mu(nlay), VMR0(n_sp))
   do i = 1, nlay
     call interp_ce_table(n_sp, Tl(i), pl(i), VMR_IC(i,:), mu(i), IC_file)
     !print*, i, pl(i)/1e5_dp, mu(i), VMR_IC(i,:)
@@ -99,7 +109,7 @@ program mini_chem_main
 
   integrator = 'dlsode'
   open(newunit=u,file='outputs_photo/'//trim(integrator)//'.txt',action='readwrite')
-  write(u,*) 'layer ', 'time ', g_sp(:)%c, ' He'
+  write(u,*) 'layer ', 'time ', g_sp(:)%c
   do i = 1, nlay
     write(u,*) i, 0.0, VMR_IC(i,:)
   end do
@@ -125,7 +135,7 @@ program mini_chem_main
   do n = 1, n_step
 
     !! Calculate the actinic flux in the column
-    !call mini_ch_actinic_flux(nlay, Tl(:), pl(:), pe(:), VMR(:,:))
+    call calc_actinic_flux(nlay, n_sp, Tl(:), pl(:), pe(:), mu(:), VMR(:,:), grav, mu_z, Rs, sm_ax)
 
     ! Call dlsode - bdf method - don't send He to integrator so dimensions are n_sp-1
     do i = 1, nlay
@@ -133,6 +143,10 @@ program mini_chem_main
     end do
 
     !! Perform vertical diffusion
+    VMR0(:) = VMR(nlay,:)
+
+    call vert_diff(nlay, nlay+1, t_step, mu(:), grav, & 
+      & Tl(:), pl(:), pe(:), Kzz(:), n_sp, VMR(:,:), VMR0(:))
 
     do i = 1, nlay
       !! Scale VMR to 1
@@ -145,10 +159,10 @@ program mini_chem_main
     ! Time now
     print*, n, n_step, t_now
 
-  end do
+    do i = 1, nlay
+      write(u,*) i, t_now, VMR(i,:)
+    end do
 
-  do i = 1, nlay
-    write(u,*) i, t_now, VMR(i,:)
   end do
 
   close(u)
