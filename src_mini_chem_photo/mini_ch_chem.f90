@@ -131,7 +131,7 @@ contains
         else
           ! Calculate photochemical dissociation rate given the actinic flux at each wavelength
           ! Use trapezium rule to integrate expression
-          kf = trapz(wl_grid(:),a_flux(ilay,:)*g_sp(re(i)%gi_re(1))%ph_xsec(:))
+          kf = trapz(wl_grid(:),a_flux(ilay,:)*g_sp(re(i)%gi_re(1))%ph_dxsec(:,re(i)%br_idx))
         end if
 
       case default

@@ -170,6 +170,10 @@ contains
     real(dp) :: A, B, C, nd_stp, King, n_ref, Dpol, a_vol
     real(dp) :: freq, w, wwl
 
+    integer :: j, k
+    real(dp), allocatable, dimension(:) :: wl_xsec, axsec, dxsec, ixsec
+
+
     !! First calculate wavelength grid for photochemistry calculations
     !! We follow the vulcan method, splitting the range into 2 parts, one at width dbin1 and dbin2
     !! that transitions at dbin_12trans - then output number of wavelengths and generate wavelength grid
@@ -250,7 +254,7 @@ contains
       read(u,*) wl_f(i), flx_f(i)
       !print*, i, wl_f(i), flx_f(i)
     end do
-    wl_f(:) = wl_f(:)*1e-7_dp
+    wl_f(:) = wl_f(:)/1e7_dp
 
     close(u)
 
@@ -266,12 +270,13 @@ contains
         s_flux(i) = 0.0_dp
       else
         idx1 = idx + 1
-        call linear_log_interp(wl_grid(i), wl_f(idx), wl_f(idx1), flx_f(idx), flx_f(idx1), s_flux(i))
+        call linear_interp(wl_grid(i), wl_f(idx), wl_f(idx1), flx_f(idx), flx_f(idx1), s_flux(i))
       end if
 
-      print*, i, wl_grid(i)*1e7_dp, s_flux(i)
+      !print*, i, wl_grid(i)*1e7_dp, s_flux(i)
     end do
 
+    deallocate(wl_f, flx_f)
 
     !! Now we must read in photochemical cross sections for each species and interpolate as
     !! well as calculate Rayleigh scattering for each species 
@@ -281,7 +286,7 @@ contains
     ! So typically used functions in the field sometimes cannot be used
     do i = 1, n_sp
 
-      allocate(g_sp(i)%ph_xsec(nwl), g_sp(i)%Ray_xsec(nwl))
+      allocate(g_sp(i)%Ray_xsec(nwl))
 
       !! Calculate Rayleigh scattering data if available
       select case(trim(g_sp(i)%c))
@@ -433,6 +438,171 @@ contains
         print*, 'Species not found: ', trim(g_sp(i)%c), ' - Setting zero Rayleigh xsec'
         g_sp(i)%Ray_xsec(:) = 0.0_dp
       end select
+
+    end do
+
+
+    !! Now read in and interpolate species photo cross-sections
+    do i = 1, n_sp
+
+      !! Read x-section data for species if available
+      select case(trim(g_sp(i)%c))
+
+      case('OH')
+
+        g_sp(i)%nbr = 1; g_sp(i)%nbr_wl = 2
+
+      case('H2')
+
+        g_sp(i)%nbr = 1; g_sp(i)%nbr_wl = 2
+
+      case('H2O')
+
+        g_sp(i)%nbr = 3; g_sp(i)%nbr_wl = 4
+
+      case('H')
+
+        g_sp(i)%nbr = 1; g_sp(i)%nbr_wl = 2
+
+      case('CO')
+
+        g_sp(i)%nbr = 1; g_sp(i)%nbr_wl = 2
+
+      case('CO2')
+
+        g_sp(i)%nbr = 2; g_sp(i)%nbr_wl = 2
+
+      case('O')
+
+        g_sp(i)%nbr = 1; g_sp(i)%nbr_wl = 2
+
+      case('CH4')
+
+        g_sp(i)%nbr = 4; g_sp(i)%nbr_wl = 26
+
+      case('C2H2')
+
+        g_sp(i)%nbr = 1; g_sp(i)%nbr_wl = 2
+
+      case('NH3')
+
+        g_sp(i)%nbr = 2; g_sp(i)%nbr_wl = 201
+
+      case('N2')
+
+        g_sp(i)%nbr = 1; g_sp(i)%nbr_wl = 2
+
+      case('HCN')
+
+        g_sp(i)%nbr = 1; g_sp(i)%nbr_wl = 2
+
+      case('He')
+
+        g_sp(i)%nbr = 1; g_sp(i)%nbr_wl = 2
+
+      case default        
+        print*, 'Species not found: ', trim(g_sp(i)%c), ' - Setting zero photo xsec'
+        g_sp(i)%nbr = 1; g_sp(i)%nbr_wl = 1
+        allocate(g_sp(i)%ph_axsec(nwl),g_sp(i)%ph_dxsec(nwl,g_sp(i)%nbr),g_sp(i)%ph_ixsec(nwl))
+        g_sp(i)%ph_axsec(:) = 0.0_dp
+        g_sp(i)%ph_dxsec(:,:) = 0.0_dp
+        g_sp(i)%ph_ixsec(:) = 0.0_dp
+        cycle
+      end select
+
+      allocate(g_sp(i)%br_wl(g_sp(i)%nbr_wl), g_sp(i)%br(g_sp(i)%nbr_wl, g_sp(i)%nbr))
+      allocate(g_sp(i)%ph_axsec(nwl), g_sp(i)%ph_dxsec(nwl,g_sp(i)%nbr), g_sp(i)%ph_ixsec(nwl))
+
+      !! Read cross sections from file
+      open(newunit=u,file='chem_data/ph_xsecs/'//trim(g_sp(i)%c)//'_cross.csv' & 
+        & ,status='old',action='read',form='formatted')
+      ! Read header
+      read(u,*)
+
+      ! Find number of lines in file
+      nlines = 0
+      do
+        read(u,*,iostat=io)
+        if (io /= 0) then 
+          exit
+        end if
+        nlines = nlines + 1
+      end do
+
+      ! Allocate values for stellar flux file
+      allocate(wl_xsec(nlines),axsec(nlines),dxsec(nlines),ixsec(nlines)) 
+      
+      ! Rewind file
+      rewind(u)
+      ! Read header again
+      read(u,*)
+
+      ! Read in cross sections
+      do l = 1, nlines
+        read(u,*) wl_xsec(l), axsec(l), dxsec(l), ixsec(l)
+      end do
+      wl_xsec(:) = wl_xsec(:)/1e7_dp
+
+      ! Interpolate to wl grid for simulations
+      do l = 1, nwl
+
+        call locate(wl_xsec(:), nlines, wl_grid(l), idx)
+
+        if (idx < 1) then
+          g_sp(i)%ph_axsec(l) = 0.0_dp
+          g_sp(i)%ph_dxsec(l,:) = 0.0_dp
+          g_sp(i)%ph_ixsec(l) = 0.0_dp
+        else if (idx >= nlines) then
+          g_sp(i)%ph_axsec(l) = 0.0_dp
+          g_sp(i)%ph_dxsec(l,:) = 0.0_dp
+          g_sp(i)%ph_ixsec(l) = 0.0_dp
+        else
+          idx1 = idx + 1
+          call linear_interp(wl_grid(l), wl_xsec(idx), wl_xsec(idx1), axsec(idx), axsec(idx1), g_sp(i)%ph_axsec(l))
+          call linear_interp(wl_grid(l), wl_xsec(idx), wl_xsec(idx1), dxsec(idx), dxsec(idx1), g_sp(i)%ph_dxsec(l,1))
+          g_sp(i)%ph_dxsec(l,:) = g_sp(i)%ph_dxsec(l,1)
+          call linear_interp(wl_grid(l), wl_xsec(idx), wl_xsec(idx1), ixsec(idx), ixsec(idx1), g_sp(i)%ph_ixsec(l))
+        end if
+
+        !print*, trim(g_sp(i)%c), i, wl_grid(l)*1e7_dp, g_sp(i)%ph_axsec(l), g_sp(i)%ph_dxsec(l), g_sp(i)%ph_ixsec(l)
+
+      end do
+
+
+      close(u)
+
+      if (trim(g_sp(i)%c) == 'H' .or. trim(g_sp(i)%c) == 'O' .or. trim(g_sp(i)%c) == 'He') then
+        g_sp(i)%br_wl(1) = wl_grid(1); g_sp(i)%br_wl(2) = wl_grid(nwl);
+        g_sp(i)%br(:,:) = 1.0_dp
+        deallocate(wl_xsec, axsec, dxsec, ixsec)
+        cycle
+      end if
+
+      !! Read branch ratios
+      open(newunit=u,file='chem_data/ph_xsecs/'//trim(g_sp(i)%c)//'_branch.csv' & 
+        & ,status='old',action='read',form='formatted')
+
+      read(u,*) ; read(u,*)
+
+      do l = 1, g_sp(i)%nbr_wl
+        read(u,*) g_sp(i)%br_wl(l),  g_sp(i)%br(l,:)
+        !print*, trim(g_sp(i)%c), i, l,  g_sp(i)%br_wl(l),  g_sp(i)%br(l,:)
+      end do
+      g_sp(i)%br_wl(:) = g_sp(i)%br_wl(:)/1e7_dp
+
+
+      close(u)
+
+      deallocate(wl_xsec, axsec, dxsec, ixsec)
+
+      !! Now we weight the dissosiation cross-section with the branching ratio for each species
+      do k = 1, g_sp(i)%nbr_wl-1
+        do l = 1, nwl
+          if ((wl_grid(l) >= g_sp(i)%br_wl(k)) .and. (wl_grid(l) <= g_sp(i)%br_wl(k+1))) then
+            g_sp(i)%ph_dxsec(l,:) = g_sp(i)%ph_dxsec(l,:) * g_sp(i)%br(k,:)
+          end if
+        end do
+      end do
 
     end do
 

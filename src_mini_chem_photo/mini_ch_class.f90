@@ -30,8 +30,10 @@ module mini_ch_class
     real(dp) :: mw, nd
     real(dp), allocatable, dimension(:) :: a_l, a_h
 
-    real(dp) :: thresh
-    real(dp), allocatable, dimension(:) :: ph_xsec, Ray_xsec
+    real(dp) :: thresh, nbr, nbr_wl
+    real(dp), allocatable, dimension(:) :: ph_axsec, ph_ixsec, Ray_xsec
+    real(dp), allocatable, dimension(:) :: br_wl
+    real(dp), allocatable, dimension(:,:) :: br, ph_dxsec
 
   end type species
 
