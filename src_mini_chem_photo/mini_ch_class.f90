@@ -30,7 +30,7 @@ module mini_ch_class
     real(dp) :: mw, nd
     real(dp), allocatable, dimension(:) :: a_l, a_h
 
-    integer :: nbr, nbr_wl
+    integer :: nbr, nbr_wl, th_idx
     real(dp) :: thresh
     real(dp), allocatable, dimension(:) :: ph_axsec, ph_ixsec, Ray_xsec
     real(dp), allocatable, dimension(:) :: br_wl

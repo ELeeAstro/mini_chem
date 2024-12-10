@@ -217,7 +217,7 @@ contains
     wl_grid(nwl) = wl_e
 
     !! Convert nm to cm for integration purposes
-    wl_grid(:) = wl_grid(:)*1e-7_dp
+    wl_grid(:) = wl_grid(:)*1.0e-7_dp
     wn_grid(:) = 1.0_dp/wl_grid(:)
 
     !! Allocate actinic flux array and stellar flux
@@ -254,7 +254,7 @@ contains
       read(u,*) wl_f(i), flx_f(i)
       !print*, i, wl_f(i), flx_f(i)
     end do
-    wl_f(:) = wl_f(:)/1e7_dp
+    wl_f(:) = wl_f(:)*1.0e-7_dp
 
     close(u)
 
@@ -541,7 +541,7 @@ contains
       do l = 1, nlines
         read(u,*) wl_xsec(l), axsec(l), dxsec(l), ixsec(l)
       end do
-      wl_xsec(:) = wl_xsec(:)/1e7_dp
+      wl_xsec(:) = wl_xsec(:)*1e-7_dp
 
       ! Interpolate to wl grid for simulations
       do l = 1, nwl
@@ -588,7 +588,7 @@ contains
         read(u,*) g_sp(i)%br_wl(l),  g_sp(i)%br(l,:)
         !print*, trim(g_sp(i)%c), i, l,  g_sp(i)%br_wl(l),  g_sp(i)%br(l,:)
       end do
-      g_sp(i)%br_wl(:) = g_sp(i)%br_wl(:)/1e7_dp
+      g_sp(i)%br_wl(:) = g_sp(i)%br_wl(:)*1e-7_dp
 
 
       close(u)
@@ -603,6 +603,19 @@ contains
           end if
         end do
       end do
+
+    end do
+
+    !! Finally, find index for wavelength grid for photodissociation threshold
+    do i = 1, n_sp
+      call locate(wl_grid(:), nwl, g_sp(i)%thresh*1e-7_dp, g_sp(i)%th_idx)
+      if (g_sp(i)%th_idx < 1) then
+        g_sp(i)%th_idx = 0
+      else if (g_sp(i)%th_idx >= nwl) then
+        g_sp(i)%th_idx = nwl
+      end if
+        
+      !print*, i, g_sp(i)%th_idx
 
     end do
 
