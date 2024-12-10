@@ -101,7 +101,7 @@ contains
             iT2 = re(i)%nT - 1
             iT3 = re(i)%nT
           end if
-
+      
           lkf(1) = re(i)%lkf(iT1,iP1)
           lkf(2) = re(i)%lkf(iT1,iP2)
           lkf(3) = re(i)%lkf(iT1,iP3)
@@ -120,7 +120,7 @@ contains
           call Bezier_interp(lTa(:), lkfa(:), 3, lT, kf) ! Result at T, P
           kf = 10.0_dp**kf
 
-          ! print*, i, kf
+          !print*, i, kf
 
         end if
 
