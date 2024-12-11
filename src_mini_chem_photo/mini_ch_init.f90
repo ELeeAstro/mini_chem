@@ -11,6 +11,10 @@ module mini_ch_init
   real(dp), parameter :: wl_ly = 121.567_dp * 1.0e-7_dp ! Lyman alpha wavelength [cm]
   real(dp), parameter :: f_ly = c_s/wl_ly
   real(dp), parameter :: w_l = (2.0_dp * pi * f_ly) / 0.75_dp
+  real(dp), dimension(10), parameter :: cp = (/1.26537_dp,3.73766_dp,8.8127_dp,19.1515_dp, &
+  &  39.919_dp,81.1018_dp,161.896_dp,319.001_dp,622.229_dp,1203.82_dp/)
+
+  real(dp), parameter :: sigT = 6.6524587051e-25_dp
 
 contains
 
@@ -168,9 +172,9 @@ contains
     real(dp), allocatable, dimension(:) :: wl_f, flx_f
 
     real(dp) :: A, B, C, nd_stp, King, n_ref, Dpol, a_vol
-    real(dp) :: freq, w, wwl
+    real(dp) :: freq, w, wwl, xsec, wb
 
-    integer :: j, k
+    integer :: j, k, p
     real(dp), allocatable, dimension(:) :: wl_xsec, axsec, dxsec, ixsec
 
 
@@ -276,6 +280,9 @@ contains
       !print*, i, wl_grid(i)*1e7_dp, s_flux(i)
     end do
 
+    ! Convert nm-1 to cm-1
+    s_flux(:) = s_flux(:) * 1e7_dp
+
     deallocate(wl_f, flx_f)
 
     !! Now we must read in photochemical cross sections for each species and interpolate as
@@ -319,12 +326,28 @@ contains
 
       case('H')
 
-        ! Ferland (2001) - low energy limit
         do l = 1, nwl
+
           freq = c_s/wl_grid(l)
           w = 2.0_dp * pi * freq
           wwl = w/w_l
-          g_sp(i)%Ray_xsec(l) =  8.41e-25_dp*(wwl)**4 + 3.37e-24_dp*(wwl)**6 + 4.71e-22_dp*(wwl)**14
+
+          ! Lee and Kim (2004)
+          if (wwl <= 0.6_dp) then
+            ! Low energy limit
+            xsec = 0.0_dp
+            do p = 0, 9
+              xsec = xsec + (cp(p+1) * wwl**(2 * p))
+            end do
+            xsec = xsec * wwl**4
+          else
+            ! High energy limit (approaching Lyman alpha wavelengths)
+            wb = (w - 0.75_dp*w_l)/(0.75_dp*w_l)
+            xsec = (0.0433056_dp/wb**2)*(1.0_dp - 1.792_dp*wb - 23.637_dp*wb**2 - 83.1393_dp*wb**3 &
+            & - 244.1453_dp*wb**4 - 699.473_dp*wb**5)
+          end if
+          ! Multiply by Thomson x-section
+          g_sp(i)%Ray_xsec(l) = xsec * sigT
         end do
 
       case('CO')  
@@ -351,6 +374,7 @@ contains
           n_ref = A * (1.0_dp + B/(wl_grid(l)*1e4_dp)**2) + 1.0_dp
           g_sp(i)%Ray_xsec(l) = ((24.0_dp * pi**3 * wn_grid(l)**4)/(nd_stp**2)) &
             & * ((n_ref**2 - 1.0_dp)/(n_ref**2 + 2.0_dp))**2  * King
+          !print*, l, wl_grid(l)*1e7_dp, n_ref, g_sp(i)%Ray_xsec(l)
         end do
 
       case('O') 
@@ -370,11 +394,15 @@ contains
         King = 1.0_dp
 
         do l = 1, nwl
-          n_ref = (A + (B / (C - wn_grid(l)**2)))/1e8_dp + 1.0_dp
+          if (wl_grid(l)*1e7_dp < 92.5_dp) then
+            g_sp(i)%Ray_xsec(l) = 0.0_dp
+            cycle
+          end if
+          n_ref = max((A + (B / (C - wn_grid(l)**2)))/1e8_dp + 1.0_dp,1.0_dp+1e-7_dp)
           g_sp(i)%Ray_xsec(l) = ((24.0_dp * pi**3 * wn_grid(l)**4)/(nd_stp**2)) &
             & * ((n_ref**2 - 1.0_dp)/(n_ref**2 + 2.0_dp))**2  * King
+         ! print*, l, wl_grid(l)*1e7_dp, n_ref, g_sp(i)%Ray_xsec(l)
         end do
-
 
       case('C2H2')
 

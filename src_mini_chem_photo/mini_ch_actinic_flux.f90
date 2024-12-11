@@ -58,8 +58,8 @@ contains
         end do
       end do
 
-      ! Find total optical depth at each level
-      tau_tot(1) = 0.0_dp
+      ! Find total optical depth at each level - assume ghost later to zero pressure equal to uppermost opacity value
+      tau_tot(1) = (k_tot(1) * pe(1)) / grav
       do i = 1, nlay
         tau_tot(i+1) = tau_tot(i) + (k_tot(i) * dpe(i)) / grav
       end do
