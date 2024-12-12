@@ -1,7 +1,7 @@
 program mini_chem_main
   use vert_diff_mod, only : vert_diff
   use mini_ch_precision
-  use mini_ch_class, only : g_sp
+  use mini_ch_class, only : g_sp, locate, linear_interp
   use mini_ch_ce_interp, only : interp_ce_table
   use mini_ch_init, only : read_react_list, init_photochem
   use mini_ch_actinic_flux, only : calc_actinic_flux
@@ -28,6 +28,9 @@ program mini_chem_main
   real(dp) :: dbin1, dbin2, dbin_12trans, wl_s, wl_e
   real(dp) :: Rs, sm_ax
 
+  integer :: nlines, io, idx, idx1
+  real(dp), allocatable, dimension(:) :: T_f, p_f, Kzz_f
+
   namelist /mini_chem_photo/ t_step, n_step, n_sp, data_file, sp_file, network, net_dir, met, &
     & nlay, IC_file, stellar_file, Rs, sm_ax
 
@@ -41,42 +44,79 @@ program mini_chem_main
 
   nlev = nlay + 1
 
-  mu_z = 0.5_dp!1e-3_dp
+  mu_z = 0.67_dp
   Tirr = 1400.0_dp
   Tint = 400.0_dp
-  grav = 10.0_dp
+  grav = 21.40_dp
   k_V = 6e-4_dp
   k_IR = 1e-3_dp
-  p_top = 1e-9_dp * 1e5_dp
-  p_bot = 100.0_dp * 1e5_dp
+  p_top = 1e-7_dp * 1e5_dp
+  p_bot = 1000.0_dp * 1e5_dp
 
   ! Generate vertical T-p-Kzz profile
   allocate(Tl(nlay),pl(nlay),pe(nlev),Kzz(nlay),tau_IRl(nlay))
 
+
   p_top = log10(p_top)
   p_bot = log10(p_bot)
   do i = 1, nlev
-    pe(i) = 10.0_dp**((p_bot-p_top) * real(i-1,dp) / real(nlev-1,dp) + p_top) 
+     pe(i) = 10.0_dp**((p_bot-p_top) * real(i-1,dp) / real(nlev-1,dp) + p_top) 
   end do
   do i = 1, nlay
-    pl(i) = (pe(i+1) - pe(i)) / log(pe(i+1)/pe(i))
+  pl(i) = (pe(i+1) - pe(i)) / log(pe(i+1)/pe(i))
   end do
   p_top = 10.0_dp**p_top
   p_bot = 10.0_dp**p_bot
+  ! gam = k_V/k_IR
+  ! tau0 = k_IR/grav * p_bot
+  ! tau_IRl(:) = (pl(:)/p_bot * tau0)
+  ! mu_z = max(1e-6_dp,mu_z)
+  ! Tl(:) = ((3.0_dp/4.0_dp) * Tint**4 * (tau_IRl(:) + 2.0_dp/3.0_dp))
+  ! Tl(:) = Tl(:) + (mu_z * 3.0_dp * Tirr**4)/4.0_dp *  &
+  !   & (2.0_dp/3.0_dp + mu_z/gam + ((gam/(3.0_dp*mu_z)) - mu_z/gam) * exp(-gam*tau_IRl(:)/mu_z))
+  ! Tl(:) = Tl(:)**(1.0_dp/4.0_dp)
+  ! Kzz(:) = 1e10_dp
 
-  gam = k_V/k_IR
-  tau0 = k_IR/grav * p_bot
+  !! Read T-p_Kzz file and interpolate T and Kzz
+  open(newunit=u,file='T_p_Kzz_profiles/atm_HD189_Kzz.txt',action='read')
+  ! Read header
+  read(u,*) ; read(u,*)
+ ! Find number of lines in file
+  nlines = 0
+  do
+    read(u,*,iostat=io)
+     if (io /= 0) then 
+        exit
+    end if
+    nlines = nlines + 1
+  end do
+  ! Allocate values for T-p profile
+  allocate(T_f(nlines),p_f(nlines),Kzz_f(nlines))
+  ! Rewind file
+  rewind(u)
+  ! Read header again
+  read(u,*) ; read(u,*)
+  do i = nlines, 1, -1
+    read(u,*) p_f(i), T_f(i), Kzz_f(i)
+  end do
+  p_f(:) = p_f(:)/10.0_dp ! Convert to pa
+  close(u)
+  ! Interpolate to pressure grid
+  do i = 1, nlay
+    call locate(p_f(:), nlines, pl(i), idx)
+    if (idx < 1) then
+      Tl(i) = T_f(1)
+      Kzz(i) = Kzz_f(1)
+    else if (idx >= nlines) then
+      Tl(i) = T_f(nlines)
+      Kzz(i) = Kzz_f(nlines)
+    else
+      idx1 = idx + 1
+      call linear_interp(pl(i), p_f(idx), p_f(idx1), T_f(idx), T_f(idx1), Tl(i))
+      call linear_interp(pl(i), p_f(idx), p_f(idx1), Kzz_f(idx), Kzz_f(idx1), Kzz(i))
+    end if
+  end do
 
-  tau_IRl(:) = (pl(:)/p_bot * tau0)
-
-  mu_z = max(1e-6_dp,mu_z)
-
-  Tl(:) = ((3.0_dp/4.0_dp) * Tint**4 * (tau_IRl(:) + 2.0_dp/3.0_dp))
-  Tl(:) = Tl(:) + (mu_z * 3.0_dp * Tirr**4)/4.0_dp *  &
-    & (2.0_dp/3.0_dp + mu_z/gam + ((gam/(3.0_dp*mu_z)) - mu_z/gam) * exp(-gam*tau_IRl(:)/mu_z))
-  Tl(:) = Tl(:)**(1.0_dp/4.0_dp)
-
-  Kzz(:) = 1e11_dp
 
   !! Print T-p-Kzz profile
   print*, 'i, pl [bar], T[k], Kzz [cm2 s-1]'

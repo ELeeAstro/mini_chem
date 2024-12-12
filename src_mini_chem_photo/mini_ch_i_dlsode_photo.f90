@@ -128,7 +128,7 @@ contains
       select case(network)
       case('HO')
         call DLSODE (RHS_update, n_eq, y, t_now, t_end, itol, rtol, atol, itask, &
-        & istate, iopt, rwork, rworkdim, iwork, iworkdim, jac_NCHO, mf)
+        & istate, iopt, rwork, rworkdim, iwork, iworkdim, jac_HO, mf)
       case('CHO')
         call DLSODE (RHS_update, n_eq, y, t_now, t_end, itol, rtol, atol, itask, &
         & istate, iopt, rwork, rworkdim, iwork, iworkdim, jac_CHO, mf)
