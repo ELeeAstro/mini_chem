@@ -67,6 +67,8 @@ contains
       J_flx(:) = Finc(l) * exp(-tau_tot(:)/mu_z) ! Mean intensity at each level
       a_flux(:,l) =  ((J_flx(1:nlay) + J_flx(2:nlev))/2.0_dp) / ((h_p*c_s)/wl_grid(l)) ! Actinic flux at each layer center
 
+      a_flux(:,l) = 0.0_dp
+
       !print*, l, tau_tot(:)
        
     end do

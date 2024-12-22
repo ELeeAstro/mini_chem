@@ -18,7 +18,7 @@ LIBS =
 # Source files
 OBJECTS = \
     dlsode.o \
-    ver_diff_mod.o \
+    vert_diff_mod.o \
     mini_ch_precision.o \
     mini_ch_class.o \
     mini_ch_ce_interp.o \
