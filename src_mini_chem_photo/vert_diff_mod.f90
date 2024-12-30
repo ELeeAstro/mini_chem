@@ -61,7 +61,7 @@ contains
 
     !! Find Kzz at levels
     Kzze(1) = Kzz(1)
-    do k = 2, nlay-1
+    do k = 2, nlay
       Kzze(k) = (Kzz(k) + Kzz(k-1))/2.0_dp
     end do
     Kzze(nlev) = Kzz(nlay)
