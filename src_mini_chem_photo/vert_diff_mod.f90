@@ -6,8 +6,7 @@ module vert_diff_mod
   integer, parameter :: dp = REAL64 ! Precision variable
 
   real(dp), parameter :: CFL = 0.90_dp
-  real(dp), parameter :: kb = 1.380649e-16_dp
-  real(dp), parameter :: amu = 1.66053906660e-24_dp
+  real(dp), parameter :: R = 8.31446261815324e7_dp
 
   public :: vert_diff
   private :: compute_fluxes
@@ -49,7 +48,7 @@ contains
     !! First calculate the vertical height (cm) assuming hydrostatic equilibrium and differences
     alte(nlev) = 0.0_dp
     do k = nlev-1, 1, -1
-      alte(k) = alte(k+1) + (kb*Tl(k))/(mu(k) * amu * grav) * log(pe(k+1)/pe(k))
+      alte(k) = alte(k+1) + (R*Tl(k))/(mu(k)*grav) * log(pe(k+1)/pe(k))
       delz(k) = alte(k) - alte(k+1)
     end do
 
