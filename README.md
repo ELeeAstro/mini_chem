@@ -2,6 +2,8 @@
 
 NOTE: This code is in active development and aims to have continual improvements to stability and speed, please report bugs or improvements you find.
 
+Dev note: Code can produce errors for low T < 300 K, reccomend to limit T to 300.1 K as a quick fix. We are working on a solution.
+
 ## Thermochemical miniature kinetics chemistry module
 
 Mini-chem is a kinetic chemistry network solver primarily for gas giant atmospheric modelling, pared down from the large chemical networks.
