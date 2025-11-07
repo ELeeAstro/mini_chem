@@ -1,5 +1,6 @@
 program mini_chem_main
-  use vert_diff_mod, only : vert_diff
+  use vert_diff_exp_mod, only : vert_diff_exp
+  use vert_diff_imp_mod, only : vert_diff_imp
   use mini_ch_precision
   use mini_ch_class, only : g_sp, locate, linear_interp
   use mini_ch_ce_interp, only : interp_ce_table
@@ -185,7 +186,7 @@ program mini_chem_main
     !! Perform vertical diffusion
     VMR0(:) = VMR(nlay,:)
 
-    call vert_diff(nlay, nlay+1, t_step, mu(:), grav, & 
+    call vert_diff_imp(nlay, nlay+1, t_step, mu(:), grav, & 
       & Tl(:), pl(:), pe(:), Kzz(:), n_sp, VMR(:,:), VMR0(:))
 
     do i = 1, nlay

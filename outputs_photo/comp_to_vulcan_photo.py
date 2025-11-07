@@ -36,7 +36,7 @@ data = np.loadtxt(fname)
 pl = data[:,1]
 
 # Read in VULCAN data
-fname = 'HD189_nphoto.txt'
+fname = 'HD189_photo.txt'
 data = np.loadtxt(fname,skiprows=2)
 pl_v = data[:,0]/1e6
 nlay_v = len(pl_v)
