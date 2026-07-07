@@ -34,7 +34,7 @@ contains
     real(dp), dimension(nlay,nq) :: k1, k2, k3
 
     integer :: n_it, n, accept, ierr
-    real(dp) :: dt, t_now, dt_max
+    real(dp) :: dt, t_now, dt_max, err_eff
     real(dp), dimension(nq) :: tol, err
     real(dp), parameter ::  pow = 0.2_dp, safe = 0.9_dp
     real(dp), parameter ::  atol = 1e-30_dp, rtol = 1e-3_dp
@@ -113,7 +113,7 @@ contains
 
         if (n == 1) then
           ierr = 1
-        else if (err(n) > err(n-1)) then
+        else if (err(n) > err(ierr)) then
           ierr = n
         end if
 
@@ -132,11 +132,13 @@ contains
         n_it = n_it + 1
 
         ! Adjust timestep with safety factor
-        dt = safe * dt * (tol(ierr) / err(ierr))**pow
+        err_eff = max(err(ierr), tiny(1.0_dp))
+        dt = safe * dt * (tol(ierr) / err_eff)**pow
         dt = min(dt, dt_max)
       else
         ! Reject the step and reduce timestep
-        dt = safe * dt * (tol(ierr) / err(ierr))**pow
+        err_eff = max(err(ierr), tiny(1.0_dp))
+        dt = safe * dt * (tol(ierr) / err_eff)**pow
       end if
 
       ! Escape condition for small timestep
@@ -185,4 +187,3 @@ contains
   end subroutine compute_fluxes
 
 end module vert_diff_mod
-

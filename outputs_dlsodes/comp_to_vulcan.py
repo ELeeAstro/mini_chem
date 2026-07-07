@@ -10,7 +10,10 @@ ivmr = 2
 with open(filename, 'rb') as handle:
   data = pickle.load(handle)
   time_V = data['variable']['t_time']
-  mix_time_V = np.array(data['variable']['y_time'])[:,0,ivmr] /float(data['atm']['n_0'])
+  n_0 = np.asarray(data['atm']['n_0']).squeeze()
+  if n_0.ndim > 0:
+    n_0 = n_0[0]
+  mix_time_V = np.array(data['variable']['y_time'])[:,0,ivmr] /float(n_0)
   print(mix_time_V)
 # sp the name of species, e.g., ‘H2O’
 

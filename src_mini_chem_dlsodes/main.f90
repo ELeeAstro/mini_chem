@@ -54,7 +54,7 @@ program mini_chem_main
   print*, 'IC: ', VMR_IC(:), sum(VMR_IC(:))
 
   integrator = 'dlsodes'
-  open(newunit=u,file='outputs_dlsodes/'//trim(integrator)//'.txt',action='readwrite')
+  open(newunit=u,file='outputs_dlsodes/'//trim(integrator)//'.txt',status='replace',action='write')
   write(u,*) 'n', 'time', g_sp(:)%c, ' He', ' VMR sum'
   write(u,*) 0, 0.0, VMR_IC(:)
 

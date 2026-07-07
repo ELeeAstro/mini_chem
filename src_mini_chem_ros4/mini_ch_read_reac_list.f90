@@ -120,22 +120,34 @@ contains
       allocate(re(i)%gi_re(re(i)%n_re), re(i)%gi_pr(re(i)%n_pr))
       ! Find the reactant index
       do k = 1, re(i)%n_re
+        re(i)%gi_re(k) = 0
         do j = 1, n_sp
           if (g_sp(j)%c == re(i)%c_re(k)) then
             re(i)%gi_re(k) = j
             exit
           end if
         end do
+        if (re(i)%gi_re(k) == 0) then
+          print*, 'Reaction species not found in species file.'
+          print*, 'Reaction: ', i, ' reactant: ', trim(re(i)%c_re(k))
+          stop 1
+        end if
       end do
 
       ! Find the product index
       do k = 1, re(i)%n_pr
+        re(i)%gi_pr(k) = 0
         do j = 1, n_sp
           if (g_sp(j)%c == re(i)%c_pr(k)) then
             re(i)%gi_pr(k) = j
             exit
           end if
         end do
+        if (re(i)%gi_pr(k) == 0) then
+          print*, 'Reaction species not found in species file.'
+          print*, 'Reaction: ', i, ' product: ', trim(re(i)%c_pr(k))
+          stop 1
+        end if
       end do
 
       ! print*, i, re(i)%c_re(:), re(i)%gi_re(:)

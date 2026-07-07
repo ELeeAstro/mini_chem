@@ -54,7 +54,7 @@ program mini_chem_main
   print*, 'IC: ', VMR_IC(:), sum(VMR_IC(:))
 
   integrator = 'ros4'
-  open(newunit=u,file='outputs_ros4/'//trim(integrator)//'.txt',action='readwrite')
+  open(newunit=u,file='outputs_ros4/'//trim(integrator)//'.txt',status='replace',action='write')
   write(u,*) 'n', 'time', g_sp(:)%c
   write(u,*) 0, 0.0, VMR_IC(:)
 

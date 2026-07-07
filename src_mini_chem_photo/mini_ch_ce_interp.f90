@@ -30,7 +30,7 @@ module mini_ch_ce_interp
     real(dp), dimension(n_sp), intent(out) :: VMR
 
     integer :: m, i_p1, i_p2, i_p3, i_t1, i_t2, i_t3
-    real(dp) :: lP_in, lT_in, y_out
+    real(dp) :: lP_in, lT_in, y_out, T_eval, P_eval
     real(dp), dimension(3) :: lTa, lPa, mua, xa, xa_out, mua_out
 
     if (first_call .eqv. .True.) then
@@ -38,12 +38,15 @@ module mini_ch_ce_interp
       first_call = .False.
     end if
 
+    T_eval = min(max(T_in, T_t(1)), T_t(nT))
+    P_eval = min(max(P_in/1e5_dp, P_t(1)), P_t(nP))
+
     ! log input T and P
-    lP_in = log10(P_in/1e5_dp)
-    lT_in = log10(T_in)
+    lP_in = log10(P_eval)
+    lT_in = log10(T_eval)
 
     ! Find upper and lower T and P triplet indexes
-    call locate(P_t, nP, P_in/1e5_dp, i_p2)
+    call locate(P_t, nP, P_eval, i_p2)
     i_p1 = i_p2 - 1
     i_p3 = i_p2 + 1
 
@@ -58,7 +61,7 @@ module mini_ch_ce_interp
     end if
 
     ! Check if input temperature is within table range
-    if (T_in <= T_t(1)) then
+    if (T_eval <= T_t(1)) then
 
       ! Perform Bezier interpolation at minimum table temperature
       lPa(1) = lP_t(i_p1)
@@ -77,7 +80,7 @@ module mini_ch_ce_interp
         VMR(m) = 10.0_dp**y_out
       end do
 
-    else if (T_in >= T_t(nT)) then
+    else if (T_eval >= T_t(nT)) then
 
       ! Perform Bezier interpolation at maximum table temperature
       lPa(1) = lP_t(i_p1)
@@ -101,9 +104,18 @@ module mini_ch_ce_interp
       ! Perform 2D Bezier interpolation by performing interpolation 4 times
 
       ! Find temperature index triplet
-      call locate(T_t, nT, T_in, i_t2)
+      call locate(T_t, nT, T_eval, i_t2)
       i_t1 = i_t2 - 1
       i_t3 = i_t2 + 1
+      if (i_t1 < 1) then
+        i_t1 = 1
+        i_t2 = 2
+        i_t3 = 3
+      else if (i_t3 > nT) then
+        i_t1 = nT - 2
+        i_t2 = nT - 1
+        i_t3 = nT
+      end if
 
       lPa(1) = lP_t(i_p1)
       lPa(2) = lP_t(i_p2)
@@ -162,6 +174,9 @@ module mini_ch_ce_interp
     open(newunit=u, file=trim(table),action='read',form='formatted',status='old')
 
     read(u,*) nT, nP, npoint, nmol
+    if (nT < 3 .or. nP < 3) then
+      error stop "read_ce_table: requires at least 3 T and 3 P points for Bezier interpolation"
+    end if
 
     !print*, np, nmol
 
@@ -201,20 +216,35 @@ module mini_ch_ce_interp
     real(dp), intent(in) :: x
     real(dp), intent(out) :: y
 
-    real(dp) :: dx, dx1, dy, dy1, wh, yc, t, wlim, wlim1
+    real(dp) :: dx, dx1, dy, dy1, wh, yc, t, wlim, wlim1, denom, denom1
+    real(dp) :: slope_tol, denom_tol
 
     !xc = (xi(1) + xi(2))/2.0_dp ! Control point (no needed here, implicitly included)
     dx = xi(2) - xi(1)
     dx1 = xi(3) - xi(2)
     dy = yi(2) - yi(1)
     dy1 = yi(3) - yi(2)
+    slope_tol = 10.0_dp * epsilon(1.0_dp) * max(1.0_dp, abs(yi(1)), abs(yi(2)), abs(yi(3)))
+    denom_tol = 10.0_dp * epsilon(1.0_dp)
 
     if ((x > xi(1)) .and. (x < xi(2))) then
       ! left hand side interpolation
       !print*,'left'
+      if (abs(dy) <= slope_tol .or. abs(dy1) <= slope_tol) then
+        t = (x - xi(1))/dx
+        y = (1.0_dp - t) * yi(1) + t * yi(2)
+        return
+      end if
       wh = dx1/(dx + dx1)
-      wlim = 1.0_dp + 1.0_dp/(1.0_dp - (dy1/dy) * (dx/dx1))
-      wlim1 = 1.0_dp/(1.0_dp - (dy/dy1) * (dx1/dx))
+      denom = 1.0_dp - (dy1/dy) * (dx/dx1)
+      denom1 = 1.0_dp - (dy/dy1) * (dx1/dx)
+      if (abs(denom) <= denom_tol .or. abs(denom1) <= denom_tol) then
+        t = (x - xi(1))/dx
+        y = (1.0_dp - t) * yi(1) + t * yi(2)
+        return
+      end if
+      wlim = 1.0_dp + 1.0_dp/denom
+      wlim1 = 1.0_dp/denom1
       if ((wh <= min(wlim,wlim1)) .or. (wh >= max(wlim,wlim1))) then
         wh = 1.0_dp
       end if
@@ -224,9 +254,21 @@ module mini_ch_ce_interp
     else ! (x > xi(2) and x < xi(3)) then
       ! right hand side interpolation
       !print*,'right'
+      if (abs(dy) <= slope_tol .or. abs(dy1) <= slope_tol) then
+        t = (x - xi(2))/(dx1)
+        y = (1.0_dp - t) * yi(2) + t * yi(3)
+        return
+      end if
       wh = dx/(dx + dx1)
-      wlim = 1.0_dp/(1.0_dp - (dy1/dy) * (dx/dx1))
-      wlim1 = 1.0_dp + 1.0_dp/(1.0_dp - (dy/dy1) * (dx1/dx))
+      denom = 1.0_dp - (dy1/dy) * (dx/dx1)
+      denom1 = 1.0_dp - (dy/dy1) * (dx1/dx)
+      if (abs(denom) <= denom_tol .or. abs(denom1) <= denom_tol) then
+        t = (x - xi(2))/(dx1)
+        y = (1.0_dp - t) * yi(2) + t * yi(3)
+        return
+      end if
+      wlim = 1.0_dp/denom
+      wlim1 = 1.0_dp + 1.0_dp/denom1
       if ((wh <= min(wlim,wlim1)) .or. (wh >= max(wlim,wlim1))) then
         wh = 1.0_dp
       end if

@@ -37,3 +37,7 @@
 
 #outputs in directories
 outputs*/*.txt
+
+
+__pycache__
+.vscode

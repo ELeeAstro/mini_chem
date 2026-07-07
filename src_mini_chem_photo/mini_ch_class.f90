@@ -176,26 +176,37 @@ contains
     real(dp), intent(in) :: x
     real(dp), intent(out) :: y
 
-    real(dp) :: dx, dx1, dy, dy1, w, yc, t, wlim, wlim1
+    real(dp) :: dx, dx1, dy, dy1, w, yc, t, wlim, wlim1, denom, denom1
+    real(dp) :: slope_tol, denom_tol
 
     !xc = (xi(1) + xi(2))/2.0_dp ! Control point (no needed here, implicitly included)
     dx = xi(2) - xi(1)
     dx1 = xi(3) - xi(2)
     dy = yi(2) - yi(1)
     dy1 = yi(3) - yi(2)
+    slope_tol = 10.0_dp * epsilon(1.0_dp) * max(1.0_dp, abs(yi(1)), abs(yi(2)), abs(yi(3)))
+    denom_tol = 10.0_dp * epsilon(1.0_dp)
 
     if ((x > xi(1)) .and. (x < xi(2))) then
       ! left hand side interpolation
       !print*,'left'
-      if ((dy1 == 0.0_dp) .or. (dy == 0.0_dp)) then
+      if (abs(dy) <= slope_tol .or. abs(dy1) <= slope_tol) then
+        t = (x - xi(1))/dx
+        y = (1.0_dp - t) * yi(1) + t * yi(2)
+        return
+      end if
+      w = dx1/(dx + dx1)
+      denom = 1.0_dp - (dy1/dy) * (dx/dx1)
+      denom1 = 1.0_dp - (dy/dy1) * (dx1/dx)
+      if (abs(denom) <= denom_tol .or. abs(denom1) <= denom_tol) then
+        t = (x - xi(1))/dx
+        y = (1.0_dp - t) * yi(1) + t * yi(2)
+        return
+      end if
+      wlim = 1.0_dp + 1.0_dp/denom
+      wlim1 = 1.0_dp/denom1
+      if ((w <= min(wlim,wlim1)) .or. (w >= max(wlim,wlim1))) then
         w = 1.0_dp
-      else
-        w = dx1/(dx + dx1)
-        wlim = 1.0_dp + 1.0_dp/(1.0_dp - (dy1/dy) * (dx/dx1))
-        wlim1 = 1.0_dp/(1.0_dp - (dy/dy1) * (dx1/dx))
-        if ((w <= min(wlim,wlim1)) .or. (w >= max(wlim,wlim1))) then
-          w = 1.0_dp
-        end if
       end if
       yc = yi(2) - dx/2.0_dp * (w*dy/dx + (1.0_dp - w)*dy1/dx1)
       t = (x - xi(1))/dx
@@ -203,15 +214,23 @@ contains
     else ! (x > xi(2) and x < xi(3)) then
       ! right hand side interpolation
       !print*,'right'
-      if ((dy1 == 0.0_dp) .or. (dy == 0.0_dp)) then
+      if (abs(dy) <= slope_tol .or. abs(dy1) <= slope_tol) then
+        t = (x - xi(2))/(dx1)
+        y = (1.0_dp - t) * yi(2) + t * yi(3)
+        return
+      end if
+      w = dx/(dx + dx1)
+      denom = 1.0_dp - (dy1/dy) * (dx/dx1)
+      denom1 = 1.0_dp - (dy/dy1) * (dx1/dx)
+      if (abs(denom) <= denom_tol .or. abs(denom1) <= denom_tol) then
+        t = (x - xi(2))/(dx1)
+        y = (1.0_dp - t) * yi(2) + t * yi(3)
+        return
+      end if
+      wlim = 1.0_dp/denom
+      wlim1 = 1.0_dp + 1.0_dp/denom1
+      if ((w <= min(wlim,wlim1)) .or. (w >= max(wlim,wlim1))) then
         w = 1.0_dp
-      else
-        w = dx/(dx + dx1)
-        wlim = 1.0_dp/(1.0_dp - (dy1/dy) * (dx/dx1))
-        wlim1 = 1.0_dp + 1.0_dp/(1.0_dp - (dy/dy1) * (dx1/dx))
-        if ((w <= min(wlim,wlim1)) .or. (w >= max(wlim,wlim1))) then
-          w = 1.0_dp
-        end if
       end if
       yc = yi(2) + dx1/2.0_dp * (w*dy1/dx1 + (1.0_dp - w)*dy/dx)
       t = (x - xi(2))/(dx1)

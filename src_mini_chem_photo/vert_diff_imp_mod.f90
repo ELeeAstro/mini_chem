@@ -91,7 +91,7 @@ contains
     do k = 2, nlay
       Df(k) = rho_e(k) * K_e(k) / (dzm(k-1) + eps) ! interior faces
     end do
-    Df(nlay+1) = rho_e(nlev) * K_e(nlev) / (dzm(nlay-1) + eps)   ! bottom face
+    Df(nlay+1) = rho_e(nlev) * K_e(nlev) / (0.5_dp*dz(nlay) + eps) ! bottom face
 
     ! Cell weight wcell = 1/(rho*Δz)
     do k = 1, nlay

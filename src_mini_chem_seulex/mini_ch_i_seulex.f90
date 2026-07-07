@@ -5,6 +5,7 @@ module mini_ch_i_seulex
   implicit none
 
   real(dp) :: nd_atm
+  !$omp threadprivate(nd_atm)
 
   private
   public ::  mini_ch_seulex, RHS_update, jac_dummy, mas_dummy, solout &
@@ -172,19 +173,16 @@ contains
 
     integer :: i, k, j
     real(dp) :: msum, msum2, frate, rrate
-    real(dp), dimension(n_reac) :: net_pr, net_re
-    real(dp), dimension(NEQ) :: f_pr, f_re, t_pr, t_re
-    real(dp), dimension(NEQ) :: c_pr, c_re
+    real(dp) :: net
+    real(dp), dimension(NEQ) :: f_sum, f_comp
 
     !! Convert VMR to number density for rate calculations
     y(:) = y(:) * nd_atm
 
     ! Calculate the rate of change of number density for all species [cm-3/s]
     ! this is the f vector
-    f_pr(:) = 0.0_dp
-    c_pr(:) = 0.0_dp
-    f_re(:) = 0.0_dp
-    c_re(:) = 0.0_dp
+    f_sum(:) = 0.0_dp
+    f_comp(:) = 0.0_dp
     
     ! Loop through reactions add rates to the f array
     do i = 1, n_reac
@@ -211,8 +209,7 @@ contains
       frate = msum * re_f(i)
       rrate = msum2 * re_r(i)
 
-      net_pr(i) = frate - rrate
-      net_re(i) = -net_pr(i)
+      net = frate - rrate
 
       !! Perform the Kahan-Babushka-Neumaier compensation sum algorithm
       ! This is slightly slower than peicewise addition for small timesteps, but faster for larger timesteps, 
@@ -220,38 +217,42 @@ contains
 
       !! Add the product rates
       do j = 1, re(i)%n_pr
-        t_pr(re(i)%gi_pr(j)) = f_pr(re(i)%gi_pr(j)) + net_pr(i)
-        if (abs(f_pr(re(i)%gi_pr(j))) >= abs(net_pr(i))) then
-          c_pr(re(i)%gi_pr(j)) = c_pr(re(i)%gi_pr(j)) + (f_pr(re(i)%gi_pr(j)) - t_pr(re(i)%gi_pr(j))) + net_pr(i)
-        else
-          c_pr(re(i)%gi_pr(j)) = c_pr(re(i)%gi_pr(j)) + (net_pr(i) - t_pr(re(i)%gi_pr(j))) + f_pr(re(i)%gi_pr(j))
-        end if
-        f_pr(re(i)%gi_pr(j)) = t_pr(re(i)%gi_pr(j))
+        call add_neumaier(f_sum(re(i)%gi_pr(j)), f_comp(re(i)%gi_pr(j)), net)
       end do
-      f_pr(re(i)%gi_pr(:)) =  f_pr(re(i)%gi_pr(:)) + c_pr(re(i)%gi_pr(:))
 
       !! Add the reactant rates
       do j = 1, re(i)%n_re
-        t_re(re(i)%gi_re(j)) = f_re(re(i)%gi_re(j)) + net_re(i)
-        if (abs(f_re(re(i)%gi_re(j))) >= abs(net_re(i))) then
-          c_re(re(i)%gi_re(j)) = c_re(re(i)%gi_re(j)) + (f_re(re(i)%gi_re(j)) - t_re(re(i)%gi_re(j))) + net_re(i)
-        else
-          c_re(re(i)%gi_re(j)) = c_re(re(i)%gi_re(j)) + (net_re(i) - t_re(re(i)%gi_re(j))) + f_re(re(i)%gi_re(j))
-        end if
-        f_re(re(i)%gi_re(j)) = t_re(re(i)%gi_re(j))
+        call add_neumaier(f_sum(re(i)%gi_re(j)), f_comp(re(i)%gi_re(j)), -net)
       end do
-      f_re(re(i)%gi_re(:)) =  f_re(re(i)%gi_re(:)) + c_re(re(i)%gi_re(:))
 
     end do
 
     !! Sum product and reactant rates to get net rate for species
-    f(:) = f_pr(:) + f_re(:)
+    f(:) = f_sum(:) + f_comp(:)
 
     !! Convert rates and number density to VMR for integration
     f(:) = f(:)/nd_atm
     y(:) = y(:)/nd_atm
 
   end subroutine RHS_update
+
+  subroutine add_neumaier(sum_val, comp_val, add_val)
+    implicit none
+
+    real(dp), intent(inout) :: sum_val, comp_val
+    real(dp), intent(in) :: add_val
+
+    real(dp) :: t
+
+    t = sum_val + add_val
+    if (abs(sum_val) >= abs(add_val)) then
+      comp_val = comp_val + (sum_val - t) + add_val
+    else
+      comp_val = comp_val + (add_val - t) + sum_val
+    end if
+    sum_val = t
+
+  end subroutine add_neumaier
 
   subroutine jac_dummy(N,X,Y,DFY,LDFY,RPAR,IPAR)
     integer :: N,LDFY,IPAR

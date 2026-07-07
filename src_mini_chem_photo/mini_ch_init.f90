@@ -133,24 +133,34 @@ contains
     do i = 1, n_reac
       ! Allocate the gas index arrays
       allocate(re(i)%gi_re(re(i)%n_re), re(i)%gi_pr(re(i)%n_pr))
+      re(i)%gi_re(:) = -1
+      re(i)%gi_pr(:) = -1
       ! Find the reactant index
       do k = 1, re(i)%n_re
         do j = 1, n_sp
-          if (g_sp(j)%c == re(i)%c_re(k)) then
+          if (trim(g_sp(j)%c) == trim(re(i)%c_re(k))) then
             re(i)%gi_re(k) = j
             exit
           end if
         end do
+        if (re(i)%gi_re(k) < 1) then
+          print*, 'Missing reactant species in list: ', trim(re(i)%c_re(k)), ' reaction id=', re(i)%id
+          error stop
+        end if
       end do
 
       ! Find the product index
       do k = 1, re(i)%n_pr
         do j = 1, n_sp
-          if (g_sp(j)%c == re(i)%c_pr(k)) then
+          if (trim(g_sp(j)%c) == trim(re(i)%c_pr(k))) then
             re(i)%gi_pr(k) = j
             exit
           end if
         end do
+        if (re(i)%gi_pr(k) < 1) then
+          print*, 'Missing product species in list: ', trim(re(i)%c_pr(k)), ' reaction id=', re(i)%id
+          error stop
+        end if
       end do
 
       !print*, i, re(i)%c_re(:), re(i)%gi_re(:)
@@ -175,7 +185,7 @@ contains
     real(dp) :: freq, w, wwl, xsec, wb
 
     integer :: j, k, p
-    real(dp), allocatable, dimension(:) :: wl_xsec, axsec, dxsec, ixsec
+    real(dp), allocatable, dimension(:) :: wl_xsec, axsec, dxsec, ixsec, dxsec_grid
 
 
     !! First calculate wavelength grid for photochemistry calculations
@@ -558,7 +568,7 @@ contains
       end do
 
       ! Allocate values for stellar flux file
-      allocate(wl_xsec(nlines),axsec(nlines),dxsec(nlines),ixsec(nlines)) 
+      allocate(wl_xsec(nlines),axsec(nlines),dxsec(nlines),ixsec(nlines),dxsec_grid(nwl)) 
       
       ! Rewind file
       rewind(u)
@@ -579,16 +589,18 @@ contains
         if (idx < 1) then
           g_sp(i)%ph_axsec(l) = 0.0_dp
           g_sp(i)%ph_dxsec(l,:) = 0.0_dp
+          dxsec_grid(l) = 0.0_dp
           g_sp(i)%ph_ixsec(l) = 0.0_dp
         else if (idx >= nlines) then
           g_sp(i)%ph_axsec(l) = 0.0_dp
           g_sp(i)%ph_dxsec(l,:) = 0.0_dp
+          dxsec_grid(l) = 0.0_dp
           g_sp(i)%ph_ixsec(l) = 0.0_dp
         else
           idx1 = idx + 1
           call linear_interp(wl_grid(l), wl_xsec(idx), wl_xsec(idx1), axsec(idx), axsec(idx1), g_sp(i)%ph_axsec(l))
-          call linear_interp(wl_grid(l), wl_xsec(idx), wl_xsec(idx1), dxsec(idx), dxsec(idx1), g_sp(i)%ph_dxsec(l,1))
-          g_sp(i)%ph_dxsec(l,:) = g_sp(i)%ph_dxsec(l,1)
+          call linear_interp(wl_grid(l), wl_xsec(idx), wl_xsec(idx1), dxsec(idx), dxsec(idx1), dxsec_grid(l))
+          g_sp(i)%ph_dxsec(l,:) = dxsec_grid(l)
           call linear_interp(wl_grid(l), wl_xsec(idx), wl_xsec(idx1), ixsec(idx), ixsec(idx1), g_sp(i)%ph_ixsec(l))
         end if
 
@@ -602,7 +614,7 @@ contains
       if (trim(g_sp(i)%c) == 'H' .or. trim(g_sp(i)%c) == 'O' .or. trim(g_sp(i)%c) == 'He') then
         g_sp(i)%br_wl(1) = wl_grid(1); g_sp(i)%br_wl(2) = wl_grid(nwl);
         g_sp(i)%br(:,:) = 1.0_dp
-        deallocate(wl_xsec, axsec, dxsec, ixsec)
+        deallocate(wl_xsec, axsec, dxsec, ixsec, dxsec_grid)
         cycle
       end if
 
@@ -621,16 +633,18 @@ contains
 
       close(u)
 
-      deallocate(wl_xsec, axsec, dxsec, ixsec)
+      g_sp(i)%ph_dxsec(:,:) = 0.0_dp
 
       !! Now we weight the dissosiation cross-section with the branching ratio for each species
       do k = 1, g_sp(i)%nbr_wl-1
         do l = 1, nwl
           if ((wl_grid(l) >= g_sp(i)%br_wl(k)) .and. (wl_grid(l) <= g_sp(i)%br_wl(k+1))) then
-            g_sp(i)%ph_dxsec(l,:) = g_sp(i)%ph_dxsec(l,:) * g_sp(i)%br(k,:)
+            g_sp(i)%ph_dxsec(l,:) = dxsec_grid(l) * g_sp(i)%br(k,:)
           end if
         end do
       end do
+
+      deallocate(wl_xsec, axsec, dxsec, ixsec, dxsec_grid)
 
     end do
 

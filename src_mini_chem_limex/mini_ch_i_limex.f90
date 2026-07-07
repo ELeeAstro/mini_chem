@@ -5,6 +5,7 @@ module mini_ch_i_limex
   implicit none
 
   real(dp) :: nd_atm
+  !$omp threadprivate(nd_atm)
 
   private
   public :: mini_ch_limex, RHS_update, jac_dummy, mas_dummy, solout &
@@ -26,13 +27,15 @@ contains
     real(dp) :: t_now,  t_old, dt_init
     logical :: con = .False.
 
-    ! seulex variables
+    ! LIMEX variables
     real(dp), dimension(n_sp) :: y, ys, y_old
-    real(dp), allocatable, dimension(:) :: rwork
-    integer, allocatable, dimension(:) :: iwork
-    real(dp) :: rtol, atol
+    real(dp), allocatable, dimension(:) :: ropt
+    integer, allocatable, dimension(:) :: iopt
+    real(dp) :: rtol, atol, h
     real(dp) :: rpar
-    integer :: itol, ijac, mljac, mujac, imas, mlmas, mumas, iout, lrwork, liwork, ipar, idid
+    integer, dimension(n_sp) :: ipos
+    integer, dimension(3) :: ifail
+    integer :: lrwork, liwork, ipar
 
     !! Find the number density of the atmosphere
     P_cgs = P_in * 10.0_dp   ! Convert pascal to dyne cm-2
@@ -65,6 +68,7 @@ contains
     liwork = 30
     allocate(iopt(liwork))
     iopt(:) = 0
+    ipos(:) = 0
 
     iopt(7) = 1
 
@@ -109,30 +113,30 @@ contains
 
     VMR(:) = y(:)/nd_atm
 
-    deallocate(rwork, iwork, Keq, re_r, re_f)
+    deallocate(ropt, iopt, Keq, re_r, re_f)
 
   end subroutine mini_ch_limex
 
   subroutine RHS_update(NEQ, nz, t, y, f, b, ir, ic, FcnInfo )
     implicit none
 
-    integer, intent(in) ::  NEQ
-    real(dp), intent(inout) :: time
+    integer, intent(in) :: NEQ
+    integer, intent(inout) :: nz, FcnInfo
+    integer, dimension(*), intent(inout) :: ir, ic
+    real(dp), intent(inout) :: t
     real(dp), dimension(NEQ), intent(inout) :: y
     real(dp), dimension(NEQ), intent(inout) :: f
-    real(dp), intent(inout) :: rpar
-    integer, intent(inout) :: ipar
+    real(dp), dimension(*), intent(inout) :: b
 
-    integer :: i, k, j2, j3, j4, j5
-    real(dp) :: msum, msum2, frate, rrate
-    real(dp), dimension(n_reac) :: net_pr, net_re
-    real(dp), dimension(NEQ) :: f1_pr, f2_pr, f3_pr, f4_pr, f5_pr
-    real(dp), dimension(NEQ) :: f1_re, f2_re, f3_re, f4_re, f5_re
+    integer :: i, k, j
+    real(dp) :: msum, msum2, frate, rrate, net
+    real(dp), dimension(NEQ) :: f_sum, f_comp
 
     nz = NEQ*NEQ
 
     ! Calculate the rate of change of number density for all species [cm-3/s]
-    ! this is the f vector
+    f_sum(:) = 0.0_dp
+    f_comp(:) = 0.0_dp
 
     ! Loop through reactions add rates to the f array
     do i = 1, n_reac
@@ -159,57 +163,39 @@ contains
       frate = msum * re_f(i)
       rrate = msum2 * re_r(i)
 
-      ! Find flux for products - regular addition
-      !f(re(i)%gi_pr(:)) = f(re(i)%gi_pr(:)) + frate - rrate
-      !f(re(i)%gi_re(:)) = f(re(i)%gi_re(:)) + rrate - frate
+      net = frate - rrate
 
-      net_pr(i) = frate - rrate
-      net_re(i) = rrate - frate
+      do j = 1, re(i)%n_pr
+        call add_neumaier(f_sum(re(i)%gi_pr(j)), f_comp(re(i)%gi_pr(j)), net)
+      end do
+
+      do j = 1, re(i)%n_re
+        call add_neumaier(f_sum(re(i)%gi_re(j)), f_comp(re(i)%gi_re(j)), -net)
+      end do
 
     end do
 
-    !! Perform peicewise summation over the arrays
-    !! here we just assume split into 5 blocks since n_reac is quite small
-    f1_pr(:) = 0.0_dp
-    f2_pr(:) = 0.0_dp
-    f3_pr(:) = 0.0_dp
-    f4_pr(:) = 0.0_dp
-    f5_pr(:) = 0.0_dp
-
-    f1_re(:) = 0.0_dp
-    f2_re(:) = 0.0_dp
-    f3_re(:) = 0.0_dp
-    f4_re(:) = 0.0_dp
-    f5_re(:) = 0.0_dp
-
-    do i = 1, n_reac/5
-
-      j2 = i + n_reac/5
-      j3 = i + 2*n_reac/5
-      j4 = i + 3*n_reac/5
-      j5 = i + 4*n_reac/5
-
-      f1_pr(re(i)%gi_pr(:)) = f1_pr(re(i)%gi_pr(:)) + net_pr(i)
-      f2_pr(re(j2)%gi_pr(:)) = f2_pr(re(j2)%gi_pr(:)) + net_pr(j2)
-      f3_pr(re(j3)%gi_pr(:)) = f3_pr(re(j3)%gi_pr(:)) + net_pr(j3)
-      f4_pr(re(j4)%gi_pr(:)) = f4_pr(re(j4)%gi_pr(:)) + net_pr(j4)
-      f5_pr(re(j5)%gi_pr(:)) = f5_pr(re(j5)%gi_pr(:)) + net_pr(j5)     
-     
-      f1_re(re(i)%gi_re(:)) = f1_re(re(i)%gi_re(:)) + net_re(i)
-      f2_re(re(j2)%gi_re(:)) = f2_re(re(j2)%gi_re(:)) + net_re(j2)
-      f3_re(re(j3)%gi_re(:)) = f3_re(re(j3)%gi_re(:)) + net_re(j3)
-      f4_re(re(j4)%gi_re(:)) = f4_re(re(j4)%gi_re(:)) + net_re(j4)
-      f5_re(re(j5)%gi_re(:)) = f5_re(re(j5)%gi_re(:)) + net_re(j5)
- 
-    end do
-
-    do i = 1, neq
-      f(i) = (f1_pr(i) + f2_pr(i) + f3_pr(i) + f4_pr(i) + f5_pr(i)) + &
-        & (f1_re(i) + f2_re(i) + f3_re(i) + f4_re(i) + f5_re(i))
-      !print*, i, f(i)
-    end do
+    f(:) = f_sum(:) + f_comp(:)
 
   end subroutine RHS_update
+
+  subroutine add_neumaier(sum_val, comp_val, add_val)
+    implicit none
+
+    real(dp), intent(inout) :: sum_val, comp_val
+    real(dp), intent(in) :: add_val
+
+    real(dp) :: t
+
+    t = sum_val + add_val
+    if (abs(sum_val) >= abs(add_val)) then
+      comp_val = comp_val + (sum_val - t) + add_val
+    else
+      comp_val = comp_val + (add_val - t) + sum_val
+    end if
+    sum_val = t
+
+  end subroutine add_neumaier
 
   subroutine jac_dummy(N,X,Y,DFY,LDFY,RPAR,IPAR)
     integer :: N,LDFY,IPAR

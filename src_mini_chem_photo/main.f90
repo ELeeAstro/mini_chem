@@ -126,7 +126,7 @@ program mini_chem_main
   end do
 
   ! Output T-p-Kzz profile 
-  open(newunit=u,file='outputs_photo/T_p_Kzz.txt',action='readwrite')
+  open(newunit=u,file='outputs_photo/T_p_Kzz.txt',status='replace',action='write')
   do i = 1, nlay
     write(u,*) i, pl(i)/1e5_dp, Tl(i), Kzz(i)
   end do
@@ -149,7 +149,7 @@ program mini_chem_main
   end do
 
   integrator = 'dlsode'
-  open(newunit=u,file='outputs_photo/'//trim(integrator)//'.txt',action='readwrite')
+  open(newunit=u,file='outputs_photo/'//trim(integrator)//'.txt',status='replace',action='write')
   write(u,*) 'layer ', 'time ', g_sp(:)%c
   do i = 1, nlay
     write(u,*) i, 0.0, VMR_IC(i,:)

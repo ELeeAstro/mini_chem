@@ -16,7 +16,7 @@ contains
 
     integer :: i, iT1, iT2, iT3, iP1, iP2, iP3
     real(dp) :: k0, kinf
-    real(dp) :: lT, lP
+    real(dp) :: lT, lP, T_tab, P_tab
     real(dp) :: kf
     real(dp), dimension(3) :: lPa, lTa, lkf, lkfa
 
@@ -37,14 +37,17 @@ contains
         !print*, i, k0, kinf
       else if (re(i)%re_t == 4) then
 
-        lT = log10(T)
-        lP = log10(P)
+        T_tab = min(max(T, re(i)%T(1)), re(i)%T(re(i)%nT))
+        P_tab = min(max(P, re(i)%P(1)), re(i)%P(re(i)%nP))
+
+        lT = log10(T_tab)
+        lP = log10(P_tab)
 
         ! Interpolate using Bezier interpolation to find net reaction forward rate
         ! from the tables
 
         ! Find pressure index triplet
-        call locate(re(i)%P(:), re(i)%nP, P, iP2)
+        call locate(re(i)%P(:), re(i)%nP, P_tab, iP2)
         iP1 = iP2 - 1
         iP3 = iP2 + 1
 
@@ -63,7 +66,7 @@ contains
         lPa(3) = re(i)%lP(iP3)
 
         ! Check if input temperature is within table range
-        if (T <= re(i)%T(1)) then
+        if (T_tab <= re(i)%T(1)) then
 
           ! Perform Bezier interpolation at minimum table temperature
           lkf(1) = re(i)%lkf(1,iP1)
@@ -72,7 +75,7 @@ contains
           call Bezier_interp(lPa(:), lkf(:), 3, lP, kf)
           kf = 10.0_dp**kf
 
-        else if (T >= re(i)%T(re(i)%nT)) then
+        else if (T_tab >= re(i)%T(re(i)%nT)) then
 
           ! Perform Bezier interpolation at maximum table temperature
           lkf(1) = re(i)%lkf(re(i)%nT,iP1)
@@ -87,7 +90,7 @@ contains
           ! Perform 2D Bezier interpolation by performing interpolation 4 times
 
           ! Find temperature index triplet
-          call locate(re(i)%T(:), re(i)%nT, T, iT2)
+          call locate(re(i)%T(:), re(i)%nT, T_tab, iT2)
           iT1 = iT2 - 1
           iT3 = iT2 + 1
 
@@ -175,7 +178,7 @@ contains
 
     end do
 
-    !! Second calculate the reverse reaction coefficent
+    !! Second calculate the reverse reaction coefficient
     dH(:) = 0.0_dp
     ds(:) = 0.0_dp
     do i = 1, n_reac

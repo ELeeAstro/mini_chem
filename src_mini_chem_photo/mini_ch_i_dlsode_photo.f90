@@ -6,9 +6,9 @@ module mini_ch_i_dlsode_photo
 
   logical, parameter :: use_stiff = .True.
   real(dp) :: nd_atm
+  !$omp threadprivate(nd_atm)
 
-  public ::  mini_ch_dlsode_photo, RHS_update, jac_dummy, &
-    & jac_HO, jac_CHO, jac_NCHO
+  public ::  mini_ch_dlsode_photo, RHS_update, jac_dummy
 
 contains
 
@@ -38,7 +38,18 @@ contains
     P_cgs = P_in * 10.0_dp   ! Convert pascal to dyne cm-2
     nd_atm = P_cgs/(kb*T_in)  ! Find initial number density [cm-3] of atmosphere
 
-    allocate(Keq(n_reac), re_f(n_reac), re_r(n_reac))
+    if (allocated(Keq)) then
+      if (size(Keq) /= n_reac) deallocate(Keq)
+    end if
+    if (.not. allocated(Keq)) allocate(Keq(n_reac))
+    if (allocated(re_f)) then
+      if (size(re_f) /= n_reac) deallocate(re_f)
+    end if
+    if (.not. allocated(re_f)) allocate(re_f(n_reac))
+    if (allocated(re_r)) then
+      if (size(re_r) /= n_reac) deallocate(re_r)
+    end if
+    if (.not. allocated(re_r)) allocate(re_r(n_reac))
 
     ! First find the reverse reaction coefficents (Keq)
     call reverse_reactions(T_in)
@@ -60,7 +71,6 @@ contains
     ! Method flag
     if (use_stiff .eqv. .True.) then
       ! Problem is stiff (usual)
-      ! mf = 21 - full jacobian matrix with jacobian save
       ! mf = 22 - internal calculated jacobian
       mf = 22
       rworkdim = 22 +  9*n_eq + n_eq**2
@@ -108,7 +118,7 @@ contains
 
     ! Set the printing flag
     ! 0 = no printing, 1 = printing
-    call xsetf(1)
+    call xsetf(0)
 
     ncall = 0
 
@@ -128,10 +138,10 @@ contains
       select case(network)
       case('HO')
         call DLSODE (RHS_update, n_eq, y, t_now, t_end, itol, rtol, atol, itask, &
-        & istate, iopt, rwork, rworkdim, iwork, iworkdim, jac_HO, mf)
+        & istate, iopt, rwork, rworkdim, iwork, iworkdim, jac_dummy, mf)
       case('CHO')
         call DLSODE (RHS_update, n_eq, y, t_now, t_end, itol, rtol, atol, itask, &
-        & istate, iopt, rwork, rworkdim, iwork, iworkdim, jac_CHO, mf)
+        & istate, iopt, rwork, rworkdim, iwork, iworkdim, jac_dummy, mf)
       case('NCHO')
         call DLSODE (RHS_update, n_eq, y, t_now, t_end, itol, rtol, atol, itask, &
         & istate, iopt, rwork, rworkdim, iwork, iworkdim, jac_dummy, mf)
@@ -164,7 +174,7 @@ contains
     ! Scale VMR to 1 and limit
     VMR(:) = max(VMR(:)/sum(VMR(:)),1e-30_dp)
 
-    deallocate(Keq, re_r, re_f, rwork, iwork, y, y_old)
+    deallocate(rwork, iwork, y, y_old)
 
   end subroutine mini_ch_dlsode_photo
 
@@ -180,18 +190,15 @@ contains
 
     integer :: i, k, j
     real(dp) :: msum, msum2, frate, rrate
-    real(dp), dimension(n_reac) :: net_pr, net_re
-    real(dp), dimension(NEQ) :: f_pr, f_re, t_pr, t_re
-    real(dp), dimension(NEQ) :: c_pr, c_re
+    real(dp) :: net
+    real(dp), dimension(NEQ) :: f_sum, f_comp
 
     !! Convert VMR to number density for rate calculations
     y(:) = y(:) * nd_atm
 
     ! Calculate the rate of change of number density for all species [cm-3/s] this is the f vector
-    f_pr(:) = 0.0_dp
-    c_pr(:) = 0.0_dp
-    f_re(:) = 0.0_dp
-    c_re(:) = 0.0_dp
+    f_sum(:) = 0.0_dp
+    f_comp(:) = 0.0_dp
 
     ! Loop through reactions add rates to the f array
     do i = 1, n_reac
@@ -218,8 +225,7 @@ contains
       frate = msum * re_f(i)
       rrate = msum2 * re_r(i)
 
-      net_pr(i) = frate - rrate
-      net_re(i) = -net_pr(i)
+      net = frate - rrate
 
       !! Perform the Kahan-Babushka-Neumaier compensation sum algorithm
       ! This is slightly slower than peicewise addition for small timesteps, but faster for larger timesteps, 
@@ -227,38 +233,42 @@ contains
 
       !! Add the product rates
       do j = 1, re(i)%n_pr
-        t_pr(re(i)%gi_pr(j)) = f_pr(re(i)%gi_pr(j)) + net_pr(i)
-        if (abs(f_pr(re(i)%gi_pr(j))) >= abs(net_pr(i))) then
-          c_pr(re(i)%gi_pr(j)) = c_pr(re(i)%gi_pr(j)) + (f_pr(re(i)%gi_pr(j)) - t_pr(re(i)%gi_pr(j))) + net_pr(i)
-        else
-          c_pr(re(i)%gi_pr(j)) = c_pr(re(i)%gi_pr(j)) + (net_pr(i) - t_pr(re(i)%gi_pr(j))) + f_pr(re(i)%gi_pr(j))
-        end if
-        f_pr(re(i)%gi_pr(j)) = t_pr(re(i)%gi_pr(j))
+        call add_neumaier(f_sum(re(i)%gi_pr(j)), f_comp(re(i)%gi_pr(j)), net)
       end do
-      f_pr(re(i)%gi_pr(:)) =  f_pr(re(i)%gi_pr(:)) + c_pr(re(i)%gi_pr(:))
 
       !! Add the reactant rates
       do j = 1, re(i)%n_re
-        t_re(re(i)%gi_re(j)) = f_re(re(i)%gi_re(j)) + net_re(i)
-        if (abs(f_re(re(i)%gi_re(j))) >= abs(net_re(i))) then
-          c_re(re(i)%gi_re(j)) = c_re(re(i)%gi_re(j)) + (f_re(re(i)%gi_re(j)) - t_re(re(i)%gi_re(j))) + net_re(i)
-        else
-          c_re(re(i)%gi_re(j)) = c_re(re(i)%gi_re(j)) + (net_re(i) - t_re(re(i)%gi_re(j))) + f_re(re(i)%gi_re(j))
-        end if
-        f_re(re(i)%gi_re(j)) = t_re(re(i)%gi_re(j))
+        call add_neumaier(f_sum(re(i)%gi_re(j)), f_comp(re(i)%gi_re(j)), -net)
       end do
-      f_re(re(i)%gi_re(:)) =  f_re(re(i)%gi_re(:)) + c_re(re(i)%gi_re(:))
 
     end do
 
     !! Sum product and reactant rates to get net rate for species
-    f(:) = f_pr(:) + f_re(:)
+    f(:) = f_sum(:) + f_comp(:)
 
     !! Convert rates and number density to VMR for integration
     f(:) = f(:)/nd_atm
     y(:) = y(:)/nd_atm
  
   end subroutine RHS_update
+
+  subroutine add_neumaier(sum_val, comp_val, add_val)
+    implicit none
+
+    real(dp), intent(inout) :: sum_val, comp_val
+    real(dp), intent(in) :: add_val
+
+    real(dp) :: t
+
+    t = sum_val + add_val
+    if (abs(sum_val) >= abs(add_val)) then
+      comp_val = comp_val + (sum_val - t) + add_val
+    else
+      comp_val = comp_val + (add_val - t) + sum_val
+    end if
+    sum_val = t
+
+  end subroutine add_neumaier
 
   subroutine jac_dummy (NEQ, X, Y, ML, MU, PD, NROWPD)
     implicit none

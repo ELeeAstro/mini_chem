@@ -47,7 +47,7 @@ program mini_chem_main
   print*, 'IC: ', VMR_IC(:), sum(VMR_IC(:))
 
   integrator = 'limex'
-  open(newunit=u,file='outputs_limex/'//trim(integrator)//'.txt',action='readwrite')
+  open(newunit=u,file='outputs_limex/'//trim(integrator)//'.txt',status='replace',action='write')
   write(u,*) 'n', 'time', g_sp(:)%c
   write(u,*) 0, 0.0, VMR_IC(:)
 
@@ -67,9 +67,9 @@ program mini_chem_main
     !! Scale VMR to 1
     VMR(:) = VMR(:)/sum(VMR(:))
 
-    ! Call seulex - backward Euler method
-    call mini_ch_seulex(T_in, P_in, t_step, VMR(:), network)
-    print*, 'seulex: ', VMR(:), sum(VMR(:))
+    ! Call LIMEX solver
+    call mini_ch_limex(T_in, P_in, t_step, VMR(:), network)
+    print*, 'limex: ', VMR(:), sum(VMR(:))
     write(u,*) n, t_now, VMR(:)
 
     !! Scale VMR to 1

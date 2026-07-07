@@ -54,7 +54,7 @@ program mini_chem_main
   print*, 'IC: ', VMR_IC(:), sum(VMR_IC(:))
 
   integrator = 'seulex'
-  open(newunit=u,file='outputs_seulex/'//trim(integrator)//'.txt',action='readwrite')
+  open(newunit=u,file='outputs_seulex/'//trim(integrator)//'.txt',status='replace',action='write')
   write(u,*) 'n', 'time', g_sp(:)%c
   write(u,*) 0, 0.0, VMR_IC(:)
 
