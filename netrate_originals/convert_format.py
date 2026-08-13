@@ -1,6 +1,7 @@
 import numpy as np
 
-dire = 'Tsai2022_net_rates/500xsolar_lodders2019//'
+#dire = 'Tsai2022_net_rates/500xsolar_lodders2019//'
+dire = '5Xsolar_lodders2019/'
 sol = ''
 
 netrat = ['CH4-C2H2','CH4-CO','CH4-HCN','CO-CH4-C2H2','CO-HCN','NH3-N2']
@@ -9,7 +10,8 @@ lnet = len(netrat)
 for n in range(lnet):
 
   #fname = dire+'NCHO-'+sol+'solar-'+netrat[n]+'-netrate.txt'
-  fname = dire+'NCHO-'+sol+netrat[n]+'-netrate.txt'
+  #fname = dire+'NCHO-'+sol+netrat[n]+'-netrate.txt'
+  fname = dire+'NCHO-'+netrat[n]+'-netrate.txt'
   data = np.loadtxt(fname,skiprows=2,usecols=(0,1,2))
 
   T = data[:,0]
@@ -26,7 +28,7 @@ for n in range(lnet):
   print(nT, T)
   print(nP, P)
 
-  fout = '500x_NHCO-solar-'+netrat[n]+'.txt'
+  fout = '5x_NHCO-solar-'+netrat[n]+'.txt'
 
   f = open(fout,'w')
 
