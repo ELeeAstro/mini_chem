@@ -182,9 +182,9 @@ contains
     real(dp), allocatable, dimension(:) :: wl_f, flx_f
 
     real(dp) :: A, B, C, nd_stp, King, n_ref, Dpol, a_vol
-    real(dp) :: freq, w, wwl, xsec, wb
+    real(dp) :: freq, w, wwl, xsec, wb, br_frac, wl_tol
 
-    integer :: j, k, p
+    integer :: p
     real(dp), allocatable, dimension(:) :: wl_xsec, axsec, dxsec, ixsec, dxsec_grid
 
 
@@ -276,13 +276,18 @@ contains
     ! Now we must interpolate the file to the decided wavelength grid
     do i = 1, nwl
 
-      call locate(wl_f(:), nlines, wl_grid(i), idx)
+      wl_tol = 100.0_dp * epsilon(1.0_dp) * &
+        & max(abs(wl_grid(i)), abs(wl_f(1)), abs(wl_f(nlines)))
 
-      if (idx < 1) then
+      if (wl_grid(i) < wl_f(1) - wl_tol .or. &
+        & wl_grid(i) > wl_f(nlines) + wl_tol) then
         s_flux(i) = 0.0_dp
-      else if (idx >= nlines) then
-        s_flux(i) = 0.0_dp
+      else if (wl_grid(i) <= wl_f(1) + wl_tol) then
+        s_flux(i) = flx_f(1)
+      else if (wl_grid(i) >= wl_f(nlines) - wl_tol) then
+        s_flux(i) = flx_f(nlines)
       else
+        call locate(wl_f(:), nlines, wl_grid(i), idx)
         idx1 = idx + 1
         call linear_interp(wl_grid(i), wl_f(idx), wl_f(idx1), flx_f(idx), flx_f(idx1), s_flux(i))
       end if
@@ -356,8 +361,9 @@ contains
             xsec = (0.0433056_dp/wb**2)*(1.0_dp - 1.792_dp*wb - 23.637_dp*wb**2 - 83.1393_dp*wb**3 &
             & - 244.1453_dp*wb**4 - 699.473_dp*wb**5)
           end if
-          ! Multiply by Thomson x-section
-          g_sp(i)%Ray_xsec(l) = xsec * sigT
+          ! Multiply by Thomson x-section and prevent the approximation
+          ! from producing negative extinction outside its valid range.
+          g_sp(i)%Ray_xsec(l) = max(xsec * sigT, 0.0_dp)
         end do
 
       case('CO')  
@@ -584,19 +590,27 @@ contains
       ! Interpolate to wl grid for simulations
       do l = 1, nwl
 
-        call locate(wl_xsec(:), nlines, wl_grid(l), idx)
+        wl_tol = 100.0_dp * epsilon(1.0_dp) * &
+          & max(abs(wl_grid(l)), abs(wl_xsec(1)), abs(wl_xsec(nlines)))
 
-        if (idx < 1) then
+        if (wl_grid(l) < wl_xsec(1) - wl_tol .or. &
+          & wl_grid(l) > wl_xsec(nlines) + wl_tol) then
           g_sp(i)%ph_axsec(l) = 0.0_dp
           g_sp(i)%ph_dxsec(l,:) = 0.0_dp
           dxsec_grid(l) = 0.0_dp
           g_sp(i)%ph_ixsec(l) = 0.0_dp
-        else if (idx >= nlines) then
-          g_sp(i)%ph_axsec(l) = 0.0_dp
-          g_sp(i)%ph_dxsec(l,:) = 0.0_dp
-          dxsec_grid(l) = 0.0_dp
-          g_sp(i)%ph_ixsec(l) = 0.0_dp
+        else if (wl_grid(l) <= wl_xsec(1) + wl_tol) then
+          g_sp(i)%ph_axsec(l) = axsec(1)
+          g_sp(i)%ph_dxsec(l,:) = dxsec(1)
+          dxsec_grid(l) = dxsec(1)
+          g_sp(i)%ph_ixsec(l) = ixsec(1)
+        else if (wl_grid(l) >= wl_xsec(nlines) - wl_tol) then
+          g_sp(i)%ph_axsec(l) = axsec(nlines)
+          g_sp(i)%ph_dxsec(l,:) = dxsec(nlines)
+          dxsec_grid(l) = dxsec(nlines)
+          g_sp(i)%ph_ixsec(l) = ixsec(nlines)
         else
+          call locate(wl_xsec(:), nlines, wl_grid(l), idx)
           idx1 = idx + 1
           call linear_interp(wl_grid(l), wl_xsec(idx), wl_xsec(idx1), axsec(idx), axsec(idx1), g_sp(i)%ph_axsec(l))
           call linear_interp(wl_grid(l), wl_xsec(idx), wl_xsec(idx1), dxsec(idx), dxsec(idx1), dxsec_grid(l))
@@ -633,15 +647,22 @@ contains
 
       close(u)
 
-      g_sp(i)%ph_dxsec(:,:) = 0.0_dp
-
-      !! Now we weight the dissosiation cross-section with the branching ratio for each species
-      do k = 1, g_sp(i)%nbr_wl-1
-        do l = 1, nwl
-          if ((wl_grid(l) >= g_sp(i)%br_wl(k)) .and. (wl_grid(l) <= g_sp(i)%br_wl(k+1))) then
-            g_sp(i)%ph_dxsec(l,:) = dxsec_grid(l) * g_sp(i)%br(k,:)
-          end if
-        end do
+      !! Weight the dissociation cross-section with the branching ratio.
+      !! Interpolate within the tabulated range and extend the endpoint
+      !! ratios outside it; dxsec_grid still controls the active range.
+      do l = 1, nwl
+        if (wl_grid(l) <= g_sp(i)%br_wl(1)) then
+          g_sp(i)%ph_dxsec(l,:) = dxsec_grid(l) * g_sp(i)%br(1,:)
+        else if (wl_grid(l) >= g_sp(i)%br_wl(g_sp(i)%nbr_wl)) then
+          g_sp(i)%ph_dxsec(l,:) = dxsec_grid(l) * g_sp(i)%br(g_sp(i)%nbr_wl,:)
+        else
+          call locate(g_sp(i)%br_wl(:), g_sp(i)%nbr_wl, wl_grid(l), idx)
+          idx1 = idx + 1
+          br_frac = (wl_grid(l) - g_sp(i)%br_wl(idx)) / &
+            & (g_sp(i)%br_wl(idx1) - g_sp(i)%br_wl(idx))
+          g_sp(i)%ph_dxsec(l,:) = dxsec_grid(l) * (g_sp(i)%br(idx,:) + &
+            & br_frac * (g_sp(i)%br(idx1,:) - g_sp(i)%br(idx,:)))
+        end if
       end do
 
       deallocate(wl_xsec, axsec, dxsec, ixsec, dxsec_grid)

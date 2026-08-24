@@ -2,10 +2,10 @@ import numpy as np
 import pickle
 
 plot_EQ = False
-output = open('HD189_nphoto.txt', "w")
+output = open('HD189_photo.txt', "w")
 
 
-vul = 'HD189_nphoto.vul'
+vul = 'HD189_photo.vul'
 with open(vul, 'rb') as handle:
   vul = pickle.load(handle)
   

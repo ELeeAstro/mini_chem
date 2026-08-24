@@ -146,6 +146,7 @@ program mini_chem_main
   ! Rescale IC to 1
   do i = 1, nlay
     VMR_IC(i,:) = VMR_IC(i,:)/sum(VMR_IC(i,:))
+    mu(i) = sum(VMR_IC(i,:) * g_sp(:)%mw)
   end do
 
   integrator = 'dlsode'
@@ -175,23 +176,37 @@ program mini_chem_main
   ! - this loop emulates what a call to the model is like in the GCM
   do n = 1, n_step
 
+    !! First half-step of vertical diffusion (Strang splitting)
+    VMR0(:) = VMR_IC(nlay,:)
+
+    call vert_diff_imp(nlay, nlay+1, 0.5_dp*t_step, mu(:), grav, &
+      & Tl(:), pl(:), pe(:), Kzz(:), n_sp, VMR(:,:), VMR0(:))
+
+    do i = 1, nlay
+      VMR(i,:) = max(VMR(i,:),1e-30_dp)
+      VMR(i,:) = VMR(i,:)/sum(VMR(i,:))
+      mu(i) = sum(VMR(i,:) * g_sp(:)%mw)
+    end do
+
     !! Calculate the actinic flux in the column
     call calc_actinic_flux(nlay, n_sp, Tl(:), pl(:), pe(:), mu(:), VMR(:,:), grav, mu_z, Rs, sm_ax)
 
     ! Call dlsode - bdf method - don't send He to integrator so dimensions are n_sp-1
     do i = 1, nlay
       call mini_ch_dlsode_photo(i, Tl(i), pl(i), t_step, VMR(i,:), network)
+      mu(i) = sum(VMR(i,:) * g_sp(:)%mw)
     end do
 
-    !! Perform vertical diffusion
-    VMR0(:) = VMR(nlay,:)
+    !! Second half-step of vertical diffusion (Strang splitting)
+    VMR0(:) = VMR_IC(nlay,:)
 
-    call vert_diff_imp(nlay, nlay+1, t_step, mu(:), grav, & 
+    call vert_diff_imp(nlay, nlay+1, 0.5_dp*t_step, mu(:), grav, &
       & Tl(:), pl(:), pe(:), Kzz(:), n_sp, VMR(:,:), VMR0(:))
 
     do i = 1, nlay
-      !! Scale VMR to 1
-      VMR(i,:) = max(VMR(i,:)/sum(VMR(i,:)),1e-30_dp)
+      VMR(i,:) = max(VMR(i,:),1e-30_dp)
+      VMR(i,:) = VMR(i,:)/sum(VMR(i,:))
+      mu(i) = sum(VMR(i,:) * g_sp(:)%mw)
     end do
 
     ! Update time

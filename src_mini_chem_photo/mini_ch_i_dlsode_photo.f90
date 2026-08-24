@@ -124,7 +124,8 @@ contains
 
 
     ! Scale VMR to 1 and limit
-    VMR(:) = max(VMR(:)/sum(VMR(:)),1e-30_dp)
+    VMR(:) = max(VMR(:),1e-30_dp)
+    VMR(:) = VMR(:)/sum(VMR(:))
 
     !! Pass VMR to y array
     allocate(y(n_eq), y_old(n_eq))
@@ -172,7 +173,8 @@ contains
     VMR(1:n_eq) = y(:)
 
     ! Scale VMR to 1 and limit
-    VMR(:) = max(VMR(:)/sum(VMR(:)),1e-30_dp)
+    VMR(:) = max(VMR(:),1e-30_dp)
+    VMR(:) = VMR(:)/sum(VMR(:))
 
     deallocate(rwork, iwork, y, y_old)
 

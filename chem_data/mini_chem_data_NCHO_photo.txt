@@ -5,7 +5,7 @@
 # Stoichiometric factors for each species
 # reactant and product species
 # Number of reactions:
-16
+17
 #
 2, 250, 2580
 2, 2, 3.57e-16, 1.52, 1740.0
@@ -84,5 +84,10 @@ H2, H, H
 #
 5, 0, 10000
 1, 2, 1
+1, 1, 1
+CO2, CO, O
+#
+5, 0, 10000
+1, 2, 2
 1, 1, 1
 CO2, CO, O

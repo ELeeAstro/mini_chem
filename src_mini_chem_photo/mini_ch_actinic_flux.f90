@@ -19,18 +19,16 @@ contains
     real(dp), dimension(nlay+1), intent(in) :: pe_in
     real(dp), dimension(nlay,n_sp), intent(in) :: VMR
 
-    integer :: i, l, n, nlev
-    real(dp) :: grav
+    integer :: i, l, n
+    real(dp) :: grav, delta_tau, slant_delta_tau, layer_factor, photon_energy
     real(dp), dimension(nlay) :: nd_atm, rho, pl, k_tot, dpe
-    real(dp), dimension(nlay+1) :: pe, tau_tot, J_flx
+    real(dp), dimension(nlay+1) :: pe, tau_tot
     real(dp), dimension(nwl) :: Finc
 
     if (mu_z < 1e-2) then
       a_flux(:,:) = 0.0_dp
       return
     end if
-
-    nlev = nlay + 1
 
     !! Find the number density of the atmosphere
     pl(:) = pl_in(:) * 10.0_dp   ! Convert pascal to dyne cm-2
@@ -64,8 +62,21 @@ contains
         tau_tot(i+1) = tau_tot(i) + (k_tot(i) * dpe(i)) / grav
       end do
 
-      J_flx(:) = Finc(l) * exp(-tau_tot(:)/mu_z) ! Mean intensity at each level
-      a_flux(:,l) =  ((J_flx(1:nlay) + J_flx(2:nlev))/2.0_dp) / ((h_p*c_s)/wl_grid(l)) ! Actinic flux at each layer center
+      ! Exact layer-averaged direct-beam flux for piecewise-constant opacity.
+      ! Use a series expansion for optically thin layers to avoid cancellation
+      ! in (1 - exp(-slant_delta_tau))/slant_delta_tau.
+      photon_energy = (h_p*c_s)/wl_grid(l)
+      do i = 1, nlay
+        delta_tau = tau_tot(i+1) - tau_tot(i)
+        slant_delta_tau = delta_tau/mu_z
+        if (abs(slant_delta_tau) < 1.0e-6_dp) then
+          layer_factor = 1.0_dp - slant_delta_tau/2.0_dp + &
+            & slant_delta_tau**2/6.0_dp - slant_delta_tau**3/24.0_dp
+        else
+          layer_factor = (1.0_dp - exp(-slant_delta_tau))/slant_delta_tau
+        end if
+        a_flux(i,l) = Finc(l) * exp(-tau_tot(i)/mu_z) * layer_factor / photon_energy
+      end do
 
       !a_flux(:,l) = 0.0_dp
       !print*, l, tau_tot(:)
