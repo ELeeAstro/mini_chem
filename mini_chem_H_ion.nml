@@ -1,0 +1,22 @@
+! DLSODE example: copy to mini_chem.nml in an isolated run directory.
+! Collisional network; no relaxation targets are passed by standalone main.f90.
+! Host API: call mini_ch_dlsode(..., vmr_e_eq=e_fc, vmr_hm_eq=hm_fc)
+! tau_e [s] is the module constant in src_mini_chem_dlsode/mini_ch_i_dlsode.f90.
+&mini_chem
+ network = 'H_ion'
+ T_in = 3000.0
+ P_in = 1000.0
+ t_step = 1.0
+ n_step = 10
+ n_sp = 5
+ data_file = 'chem_data/mini_chem_data_H_ion.txt'
+ sp_file = 'chem_data/mini_chem_sp_H_ion.txt'
+ net_dir = ''
+ met = ''
+/
+&mini_chem_VMR
+ CE_IC = .False.
+ IC_file = ''
+ ! H2, H, e, H_m, He; illustrative external positive-charge budget.
+ VMR_IC = 0.699999, 0.2, 1.0e-6, 0.0, 0.1
+/

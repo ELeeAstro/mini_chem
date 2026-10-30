@@ -6,6 +6,7 @@ module mini_ch_ce_interp
   integer, parameter :: dp = REAL64
 
   logical :: first_call = .True.
+  character(len=200), private :: loaded_table = ''
 
   ! T, P and vmr data arrays from table
   integer :: nT, nP, npoint, nmol
@@ -33,10 +34,15 @@ module mini_ch_ce_interp
     real(dp) :: lP_in, lT_in, y_out, T_eval, P_eval
     real(dp), dimension(3) :: lTa, lPa, mua, xa, xa_out, mua_out
 
-    if (first_call .eqv. .True.) then
+    if (first_call .or. trim(table) /= trim(loaded_table)) then
+      if (allocated(m_name)) then
+        deallocate(m_name,T_t,P_t,mu_t,vmr_t,lT_t,lP_t)
+      end if
       call read_ce_table(table)
+      loaded_table = table
       first_call = .False.
     end if
+    if (n_sp > nmol) error stop 'Requested more species than the IC table contains'
 
     T_eval = min(max(T_in, T_t(1)), T_t(nT))
     P_eval = min(max(P_in/1e5_dp, P_t(1)), P_t(nP))
@@ -216,6 +222,16 @@ module mini_ch_ce_interp
 
     real(dp) :: dx, dx1, dy, dy1, wh, yc, t, wlim, wlim1, denom, denom1
     real(dp) :: slope_tol, denom_tol
+    integer :: i
+
+    ! Return table nodes exactly, including the low-pressure boundary. The old
+    ! strict interval test sent x==xi(1) through the right-hand segment.
+    do i=1,ni
+      if (abs(x-xi(i)) <= 8.0_dp*epsilon(1.0_dp)*max(1.0_dp,abs(xi(i)))) then
+        y=yi(i)
+        return
+      end if
+    end do
 
     !xc = (xi(1) + xi(2))/2.0_dp ! Control point (no needed here, implicitly included)
     dx = xi(2) - xi(1)
@@ -225,7 +241,7 @@ module mini_ch_ce_interp
     slope_tol = 10.0_dp * epsilon(1.0_dp) * max(1.0_dp, abs(yi(1)), abs(yi(2)), abs(yi(3)))
     denom_tol = 10.0_dp * epsilon(1.0_dp)
 
-    if ((x > xi(1)) .and. (x < xi(2))) then
+    if (x < xi(2)) then
       ! left hand side interpolation
       !print*,'left'
       if (abs(dy) <= slope_tol .or. abs(dy1) <= slope_tol) then

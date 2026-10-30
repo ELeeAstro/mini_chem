@@ -32,6 +32,8 @@ contains
         read(u,*) re(i)%n_re, re(i)%n_pr, re(i)%A0, re(i)%B0, re(i)%C0, re(i)%Ainf, re(i)%Binf, re(i)%Cinf
       else if (re(i)%re_t == 4) then
         read(u,*) re(i)%n_re, re(i)%n_pr, re(i)%fname
+      else
+        error stop 'Unsupported reaction type in dlsode reader'
       end if
 
       allocate(re(i)%stoi_re(re(i)%n_re), re(i)%stoi_pr(re(i)%n_pr))

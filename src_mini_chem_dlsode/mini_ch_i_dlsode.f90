@@ -1,24 +1,31 @@
 module mini_ch_i_dlsode
+  use, intrinsic :: ieee_arithmetic, only: ieee_is_finite
   use mini_ch_precision
   use mini_ch_class
   use mini_ch_chem
   implicit none
 
   logical, parameter :: use_stiff = .True.
+  ! Electron reservoir relaxation time [s]; illustrative, not calibrated kinetics.
+  real(dp), parameter :: tau_e = 1.0e3_dp
   real(dp) :: nd_atm
+  logical, private :: relax_e_active = .False.
+  real(dp), private :: charge_eq_vmr = 0.0_dp
   !$omp threadprivate(nd_atm)
+  !$omp threadprivate(relax_e_active, charge_eq_vmr)
 
   public ::  mini_ch_dlsode, RHS_update, jac_dummy, &
-    & jac_HO, jac_CHO, jac_NCHO
+    & jac_HO, jac_CHO, jac_NCHO, jac_H_ion
 
 contains
 
-  subroutine mini_ch_dlsode(T_in, P_in, t_end, VMR, network)
+  subroutine mini_ch_dlsode(T_in, P_in, t_end, VMR, network, vmr_e_eq, vmr_hm_eq)
     implicit none
 
     real(dp), intent(in) :: T_in, P_in, t_end
     real(dp), dimension(n_sp), intent(inout) :: VMR
     character(len=200), intent(in) :: network
+    real(dp), optional, intent(in) :: vmr_e_eq, vmr_hm_eq
 
     integer :: ncall
     real(dp) :: P_cgs
@@ -33,6 +40,31 @@ contains
     integer, allocatable, dimension(:) :: iwork
     integer :: itol, itask, istate, iopt, mf, n_eq
     integer :: rworkdim, iworkdim
+
+    ! Reset on every call, so a previous cell's target cannot leak into this one.
+    relax_e_active = .False.
+    charge_eq_vmr = 0.0_dp
+    if (present(vmr_hm_eq) .and. .not.present(vmr_e_eq)) then
+      error stop 'vmr_hm_eq requires vmr_e_eq'
+    end if
+    if (present(vmr_e_eq)) then
+      if (trim(network) /= 'H_ion') error stop 'Electron relaxation requires H_ion'
+      if (n_sp /= 5) error stop 'Electron relaxation expects five H_ion species'
+      if (trim(g_sp(3)%c) /= 'e' .or. trim(g_sp(4)%c) /= 'H_m') then
+        error stop 'Electron relaxation expects e and H_m at indices 3 and 4'
+      end if
+      if (.not.ieee_is_finite(vmr_e_eq)) error stop 'Nonfinite vmr_e_eq'
+      if (vmr_e_eq < 0.0_dp .or. vmr_e_eq > 1.0_dp) error stop 'Invalid vmr_e_eq'
+      charge_eq_vmr = vmr_e_eq
+      if (present(vmr_hm_eq)) then
+        if (.not.ieee_is_finite(vmr_hm_eq)) error stop 'Nonfinite vmr_hm_eq'
+        if (vmr_hm_eq < 0.0_dp .or. vmr_hm_eq > 1.0_dp) error stop 'Invalid vmr_hm_eq'
+        charge_eq_vmr = charge_eq_vmr + vmr_hm_eq
+      end if
+      if (charge_eq_vmr > 1.0_dp) error stop 'Equilibrium charge VMR exceeds one'
+      if (tau_e <= 0.0_dp) error stop 'tau_e must be positive'
+      relax_e_active = .True.
+    end if
 
     !! Find the number density of the atmosphere
     P_cgs = P_in * 10.0_dp   ! Convert pascal to dyne cm-2
@@ -124,6 +156,9 @@ contains
       t_old = t_now
 
       select case(network)
+      case('H_ion')
+        call DLSODE (RHS_update, n_eq, y, t_now, t_end, itol, rtol, atol, itask, &
+        & istate, iopt, rwork, rworkdim, iwork, iworkdim, jac_H_ion, mf)
       case('HO')
         call DLSODE (RHS_update, n_eq, y, t_now, t_end, itol, rtol, atol, itask, &
         & istate, iopt, rwork, rworkdim, iwork, iworkdim, jac_NCHO, mf)
@@ -237,6 +272,12 @@ contains
     !! Convert rates and number density to VMR for integration
     f(:) = f(:)/nd_atm
     y(:) = y(:)/nd_atm
+    if (relax_e_active) then
+      ! FastChem gives the total negative-charge target e_eq + H_m_eq.
+      ! Only free electrons exchange with the unresolved positive-ion reservoir.
+      ! Limit the target to zero when H_m alone exceeds the total-charge target.
+      f(3) = f(3) + (max(charge_eq_vmr-y(4),0.0_dp)-y(3))/tau_e
+    end if
  
   end subroutine RHS_update
 
@@ -265,6 +306,56 @@ contains
     real(dp), dimension(NEQ), intent(inout) :: Y
     real(dp), dimension(NROWPD, NEQ), intent(inout) :: PD
   end subroutine jac_dummy
+
+  subroutine jac_H_ion(N, X, Y, ML, MU, DFY, NROWPD)
+    ! Analytic derivative of the reaction-list mass-action RHS at fixed T/P.
+    ! Differentiating each occurrence handles repeated H/e species, including
+    ! zero abundances, without dividing by Y or modifying the solver state.
+    implicit none
+    integer, intent(in) :: N, ML, MU, NROWPD
+    real(dp), intent(in) :: X, Y(N)
+    real(dp), intent(out) :: DFY(NROWPD,N)
+    real(dp) :: density(N), dnet(N), term, bath
+    integer :: i, j, k, col, row
+
+    density = Y*nd_atm
+    DFY = 0.0_dp
+    do i=1,n_reac
+      bath = 1.0_dp
+      if (re(i)%re_t == 3) bath = nd_atm
+      dnet = 0.0_dp
+      do j=1,re(i)%n_re
+        col = re(i)%gi_re(j)
+        term = re_f(i)*bath
+        do k=1,re(i)%n_re
+          if (k /= j) term = term*density(re(i)%gi_re(k))
+        end do
+        dnet(col) = dnet(col) + term
+      end do
+      do j=1,re(i)%n_pr
+        col = re(i)%gi_pr(j)
+        term = re_r(i)*bath
+        do k=1,re(i)%n_pr
+          if (k /= j) term = term*density(re(i)%gi_pr(k))
+        end do
+        dnet(col) = dnet(col) - term
+      end do
+      do j=1,re(i)%n_pr
+        row = re(i)%gi_pr(j)
+        DFY(row,:) = DFY(row,:) + dnet
+      end do
+      do j=1,re(i)%n_re
+        row = re(i)%gi_re(j)
+        DFY(row,:) = DFY(row,:) - dnet
+      end do
+    end do
+    if (relax_e_active) then
+      DFY(3,3) = DFY(3,3) - 1.0_dp/tau_e
+      if (charge_eq_vmr > Y(4)) DFY(3,4) = DFY(3,4) - 1.0_dp/tau_e
+    end if
+    ! f_VMR = f_density/nd_atm and density = Y*nd_atm: factors cancel.
+    ! No derivatives of the wrapper's post-integration VMR normalization belong here.
+  end subroutine jac_H_ion
 
   subroutine jac_NCHO(N, X, Y, ML, MU, DFY, NROWPD)
     implicit none

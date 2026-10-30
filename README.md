@@ -49,7 +49,7 @@ The namelist that describes the simulation set up:
 ### mini_chem_VMR
 
 1. CE_IC - True or False, interpolate T_in and P_in to CE table in IC file for each mini-chem species.
-2. IC_file - Location of initial condition CE file (typically in chem_data/IC).
+2. IC_file - Location of initial condition CE file (typically in chem_data/IC_g or chem_data/IC_cond).
 3. VMR - initial VMR of each species (in the species order of the _sp file).
 
 ## Directories
@@ -93,7 +93,11 @@ Contains the outputs and plotting scripts for the 0D test code. comp_to_vulcan.p
 ### chem_data
 
 Mini-chem formatted data files for each network _sp contains the species data, _data contains the reaction network, 1x, 10x directories etc- contains the netrate tables in mini-chem format for that metallicity and C/O ratio.
-IC directory contains chemical equilibrium tables calculated using FastChem for use in the ce interpolation routine, typically used for initial conditions in the GCM. 
+Chemical equilibrium tables calculated using FastChem for use in the ce interpolation routine, typically used for initial conditions in the GCM, are in `chem_data/IC_g` (gas only)
+and `chem_data/IC_cond` (local equilibrium condensation without rainout).
+Both use Lodders (2019) abundances and include ion-free NCHO and ion-enabled
+H_ion tables at seven metallicities; see [the IC table guide](chem_data/IC_README.md)
+for composition, format, validation and reproduction.
 
 ### jacobian_conversion
 
